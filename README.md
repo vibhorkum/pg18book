@@ -1,4 +1,4 @@
-# PostgreSQL E-commerce Demo with Logical Replication
+# PostgreSQL E-commerce Sample Data
 
 This repository contains a set of SQL scripts to demonstrate a reference architecture for an e-commerce platform using PostgreSQL. The setup includes a central "reference" database and a regional "subscriber" database, showcasing features like logical replication, advanced data types, and data maintenance procedures.
 
