@@ -149,7 +149,7 @@ INSERT INTO product (id, product_category_id, product_brand_id, label, shortdesc
 
 /* add longdescriptions */
 
---- Oxford Shirt (product 1)
+--- Oxford Shirt (product 1) 
 UPDATE product 
     SET longdescription = 
         'The Oxford button-down shirt is a cornerstone of classic American style, revered for its 
