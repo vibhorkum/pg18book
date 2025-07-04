@@ -147,6 +147,49 @@ INSERT INTO product (id, product_category_id, product_brand_id, label, shortdesc
         (3, 1, 5, '501 Original Fit Jeans', 'The original blue jean since 1873.')
     ON CONFLICT (id) DO NOTHING;
 
+/* add longdescriptions */
+
+--- Oxford Shirt (product 1)
+UPDATE product 
+    SET longdescription = 
+        'The Oxford button-down shirt is a cornerstone of classic American style, revered for its 
+        effortless versatility, timeless design, and understated elegance. Originating in the early 20th century, 
+        it was popularized by Brooks Brothers, who adapted the button-down collar from English polo players to prevent 
+        flapping during matches. Made from Oxford cloth—a durable, slightly textured basketweave cotton—this shirt 
+        strikes the perfect balance between casual and refined, making it a go-to for both professional and leisure wear.
+        The defining feature is its soft-rolling button-down collar, which adds a touch of relaxed sophistication, distinguishing it 
+        from dressier formal shirts. Available in a range of essential colors (crisp white, light blue, pale pink) and 
+        subtle patterns (university stripes, tattersall checks, or classic solids), it effortlessly pairs with chinos, jeans, 
+        blazers, or suits. The slightly thicker Oxford fabric ensures durability while remaining breathable and comfortable for all-day wear.
+        Designed with a traditional fit (though slim and modern cuts are also available), it features a button-through front, single 
+        chest pocket (optional), and reinforced stitching for longevity. Whether dressed up with a tie and wool trousers or worn 
+        casually with rolled sleeves and shorts, the Oxford button-down transitions seamlessly from office to weekend. A favorite 
+        among preppy, Ivy League, and business-casual wardrobes, it remains a wardrobe essential—a symbol of enduring style 
+        that never goes out of fashion.'
+    WHERE id = 1;
+
+--- Diesel T-Shirt (product 2)
+
+UPDATE product 
+    SET longdescription =
+        'Men’s Diesel T-Shirt: Bold, Edgy, and Unapologetically Cool
+        The Men’s Diesel T-Shirt embodies the brand’s rebellious spirit and Italian craftsmanship, blending streetwear attitude with premium quality. Designed for the confident, fashion-forward man, it features soft, heavyweight cotton for a structured yet comfortable fit, ensuring durability and effortless style. Diesel’s signature distressed detailing, bold graphics, or minimalist logo prints make a statement, whether you’re rocking it with ripped jeans, tailored joggers, or a leather jacket.
+        Cut for a slim or relaxed fit (depending on the style), it offers a modern silhouette that flatters without restricting movement. The reinforced stitching, double-stitched hems, and high-quality screen-printing ensure long-lasting wear, even after repeated washes. From classic crewnecks to edgy oversized cuts, Diesel’s T-shirts cater to diverse tastes—whether you prefer understated monochrome styles or eye-catching, avant-garde designs.
+        Perfect for layering under a blazer for a high-low look or wearing solo for casual streetwear vibes, this T-shirt is a versatile staple in any contemporary wardrobe. With its unmistakable Diesel edge, it’s more than just a basic—it’s a bold expression of individuality.
+        '
+    WHERE id = 2;
+
+--- Levis 501
+
+UPDATE product 
+    SET longdescription =
+        'Levi’s® 501® Original Fit Jeans – The Icon That Started It All
+        Born in 1873 as the world’s first blue jeans, the Levi’s® 501® Original Fit is a timeless symbol of authenticity, rebellion, and American heritage. Crafted from premium heavyweight denim, these jeans feature a straight-leg silhouette with a classic mid-rise waist and a button-fly closure—staying true to their original workwear roots. The sturdy 100% cotton construction (with select stretch options for added comfort) molds to your body over time, creating a personalized fit that’s uniquely yours.
+        The 501’s signature details—like the iconic red tab, leather-like patch, and reinforced rivets—pay homage to its durable legacy. Versatile enough to dress up with a blazer or keep casual with a vintage tee, they’re a staple in every denim lover’s wardrobe. Whether you prefer a rigid, unwashed look that fades beautifully with wear or a pre-washed, lived-in feel, the 501 adapts to your lifestyle while maintaining its rugged charm.
+        From cowboys to rockstars, rebels to trendsetters, generations have made the 501 their own. More than just jeans—they’re a cultural icon. Fit note: True to size with a roomy thigh and straight leg opening for a classic, comfortable silhouette.'
+WHERE id = 3;
+
+
 INSERT INTO product_variant (id, product_id, attributes, upc)
     VALUES
         (1, 1, '{"color": "light blue", "size": "M"}', '123456789015'),
