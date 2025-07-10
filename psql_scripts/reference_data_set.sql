@@ -398,7 +398,7 @@ CALL update_current_price_flags();
 
 SELECT COUNT(*) AS product_count FROM product;
 SELECT COUNT(*) AS product_variant_count FROM product_variant;
-SELECT COUNT(*) AS product_variant__price_count AS FROM product_variant_price;
+SELECT COUNT(*) AS product_variant__price_count FROM product_variant_price;
 
 
 \echo '*** Script Finished Successfully ***'
