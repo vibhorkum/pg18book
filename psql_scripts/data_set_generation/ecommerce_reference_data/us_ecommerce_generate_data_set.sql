@@ -14,7 +14,13 @@ and (b) blue jeans and T-shirts are bought together
 
 */
 
-CREATE OR REPLACE FUNCTION generate_random_phone_number (country_prefix TEXT) RETURNS TEXT
+\c us_ecommerce_data
+
+SET SEARCH_PATH TO api, product_reference, inventory, us_customer, us_sales; -- make sure path is available in current session
+
+CREATE SCHEMA data_generation;
+
+CREATE OR REPLACE FUNCTION data_generation.generate_random_phone_number (country_prefix TEXT) RETURNS TEXT
 AS 
 $$
     DECLARE 
@@ -32,16 +38,19 @@ $$
     END;        
 $$  LANGUAGE PLPGSQL;          
 
-CREATE OR REPLACE FUNCTION generate_random_phone_numbers(geo TEXT DEFAULT 'US') RETURNS JSONB AS $$
+CREATE OR REPLACE FUNCTION data_generation.generate_random_phone_numbers(geo TEXT DEFAULT 'US') RETURNS JSONB AS $$
 -- random switch between landline (6 digits in groups of 2) and mobile (9 digits in groups of 3)
 DECLARE
 	country_prefix VARCHAR(4);
 BEGIN
     IF geo = 'US' THEN country_prefix := '1'; ELSE country_prefix := '352'; END IF;
 	IF RANDOM() > 0.5 THEN --- 50% of cases add a home line
-		RETURN jsonb_build_object ('home', generate_random_phone_number(country_prefix), 'mobile', generate_random_phone_number(country_prefix));
+		RETURN jsonb_build_object (
+            'home', data_generation.generate_random_phone_number(country_prefix), 
+            'mobile', data_generation.generate_random_phone_number(country_prefix)
+            );
     ELSE    
-        RETURN jsonb_build_object ('mobile', generate_random_phone_number(country_prefix));
+        RETURN jsonb_build_object ('mobile', data_generation.generate_random_phone_number(country_prefix));
     END IF; 
 END;
 $$ LANGUAGE plpgsql;
@@ -70,7 +79,7 @@ CREATE USER MAPPING  IF NOT EXISTS FOR postgres --- local user
         OPTIONS (user 'postgres', password 'postgres');        
 
 
-CREATE FOREIGN TABLE IF NOT EXISTS us_address_starterkit (
+CREATE FOREIGN TABLE IF NOT EXISTS data_generation.us_address_starterkit (
     id bigint,
     street_nbr text,
     street_name text,
@@ -83,7 +92,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS us_address_starterkit (
     OPTIONS (schema_name 'data_generation', table_name 'us_address_import');
 
 
-CREATE OR REPLACE PROCEDURE generate_us_customer_data_set (max_nbr INTEGER DEFAULT 500)
+CREATE OR REPLACE PROCEDURE data_generation.generate_us_customer_data_set (max_nbr INTEGER DEFAULT 500)
 AS
 $$
 DECLARE
@@ -100,7 +109,7 @@ BEGIN
     RAISE NOTICE 'Creating local address cache using 100,000 random addresses';
     CREATE TEMPORARY TABLE IF NOT EXISTS us_address_cache AS 
         SELECT street_name, street_nbr, city, zip_code, state 
-            FROM us_address_starterkit
+            FROM data_generation.us_address_starterkit
             WHERE city NOT ilike 'Unincorporated' and state <> '' ORDER BY RANDOM() LIMIT 100000;
     RAISE NOTICE 'Local address cache created';       
     TRUNCATE customer CASCADE;       
@@ -109,7 +118,7 @@ BEGIN
         RAISE NOTICE 'Creating customer %', i; 
         SELECT name INTO random_first_name FROM us_data_seed.us_first_name_seed ORDER BY RANDOM() LIMIT 1; 
         SELECT name INTO random_last_name FROM us_data_seed.us_last_name_seed ORDER BY RANDOM() LIMIT 1; 
-        random_phone_numbers := generate_random_phone_numbers();
+        random_phone_numbers := data_generation.generate_random_phone_numbers();
         SELECT street_name, street_nbr, city, zip_code, state 
             INTO random_street_name, random_street_nbr, random_city, random_postal_code, random_state
             FROM us_address_cache
@@ -122,7 +131,7 @@ BEGIN
 END
 $$ LANGUAGE PLPGSQL;
 
-
+CALL data_generation.generate_us_customer_data_set(5000);
 /*
 Generate the sales transaction data
 Approach:
@@ -137,7 +146,7 @@ Approach:
 */
 
 
-CREATE OR REPLACE PROCEDURE generate_random_sales_transaction_data ()
+CREATE OR REPLACE PROCEDURE data_generation.generate_random_sales_transaction_data ()
 AS
 $$
 DECLARE
@@ -146,8 +155,8 @@ DECLARE
     random_date DATE;
     sales_transaction_id UUID;
     sales_transaction_lines INTEGER;
-    pv_id INTEGER;
-    pv_price NUMERIC;
+    p_id INTEGER;
+    p_price NUMERIC;
 BEGIN
     SELECT COUNT(*) INTO customer_count FROM customer;
     --- create random orders for 75% of customers, spread over the last 18 months
@@ -163,20 +172,22 @@ BEGIN
             FOR i IN 1.. sales_transaction_lines LOOP
                 --- select a random product variant with its price
                 SELECT 
-                    pv.id, pvp.price INTO pv_id, pv_price
-                    FROM product_variant pv, product_variant_price pvp
-                    WHERE pv.id = pvp.product_variant_id
+                    p.id, pp.price INTO p_id, p_price
+                    FROM product p, product_price pp
+                    WHERE p.id = pp.product_id
                     ORDER BY RANDOM() LIMIT 1;
                 --- create a sales transaction line    
-                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
-                    VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
+                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_id, price_at_sale, qty)
+                    VALUES (gen_random_uuid(), sales_transaction_id, p_id, p_price, 1);
             END LOOP;
         END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
+call data_generation.generate_random_sales_transaction_data ();
 
-CREATE OR REPLACE PROCEDURE generate_tshirt_jeans_sales_transaction_data (ratio NUMERIC DEFAULT 0.25)
+
+CREATE OR REPLACE PROCEDURE data_generation.generate_tshirt_jeans_sales_transaction_data (ratio NUMERIC DEFAULT 0.25)
 AS
 $$
 DECLARE
@@ -184,8 +195,8 @@ DECLARE
     customer_count INTEGER;
     random_date DATE;
     sales_transaction_id UUID;
-    pv_id INTEGER;
-    pv_price NUMERIC;
+    p_id INTEGER;
+    p_price NUMERIC;
 BEGIN
 SELECT COUNT(*) INTO customer_count FROM customer;
     --- create t-shirt and jeans orders for subset of customers, spread over the last 18 months
@@ -196,32 +207,32 @@ SELECT COUNT(*) INTO customer_count FROM customer;
             INSERT INTO sales_transaction (id, transaction_date, customer_id)
                 VALUES (gen_random_uuid(), random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
-            --- select product variant and price for t-shirts
-            SELECT pv.id, pvp.price INTO pv_id, pv_price FROM product_variant pv
-                JOIN product_variant_price pvp ON pvp.product_variant_id = pv.id
-                JOIN product p ON p.id = pv. product_id
-                WHERE p.label ilike '%t-shirt%'
+            --- select product  and price for t-shirts
+            SELECT 
+                p.id, pp.price INTO p_id, p_price
+                FROM product p, product_price pp
+                WHERE p.id = pp.product_id AND p.label ilike '%t-shirt%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF pv_id <> NULL THEN    
+            IF p_id <> NULL THEN    
                 INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
                     VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
             END IF;    
             --- select product variant and price for jeans
-            SELECT pv.id, pvp.price INTO pv_id, pv_price FROM product_variant pv
-                JOIN product_variant_price pvp ON pvp.product_variant_id = pv.id
-                JOIN product p ON p.id = pv. product_id
-                WHERE p.label ilike '%jeans%'
+            SELECT 
+                p.id, pp.price INTO p_id, p_price
+                FROM product p, product_price pp
+                WHERE p.id = pp.product_id AND p.label ilike '%jeans%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF pv_id <> NULL THEN    
-                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
-                    VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
+            IF p_id <> NULL THEN    
+                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_id, price_at_sale, qty)
+                    VALUES (gen_random_uuid(), sales_transaction_id, p_id, p_price, 1);
             END IF;        
         END LOOP;
 
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE generate_polo_sports_coat_sales_transaction_data (ratio NUMERIC DEFAULT 0.25)
+CREATE OR REPLACE PROCEDURE data_generation.generate_polo_sports_coat_sales_transaction_data (ratio NUMERIC DEFAULT 0.25)
 AS
 $$
 DECLARE
@@ -229,8 +240,8 @@ DECLARE
     customer_count INTEGER;
     random_date DATE;
     sales_transaction_id UUID;
-    pv_id INTEGER;
-    pv_price NUMERIC;
+    p_id INTEGER;
+    p_price NUMERIC;
 BEGIN
 SELECT COUNT(*) INTO customer_count FROM customer;
     --- create polo and sports coat orders for subset of customers, spread over the last 18 months
@@ -242,30 +253,30 @@ SELECT COUNT(*) INTO customer_count FROM customer;
                 VALUES (gen_random_uuid(), random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
             --- select product variant and price for polos
-            SELECT pv.id, pvp.price INTO pv_id, pv_price FROM product_variant pv
-                JOIN product_variant_price pvp ON pvp.product_variant_id = pv.id
-                JOIN product p ON p.id = pv. product_id
-                WHERE p.label ilike '%polo%'
+            SELECT 
+                p.id, pp.price INTO p_id, p_price
+                FROM product p, product_price pp
+                WHERE p.id = pp.product_id AND p.label ilike '%polo%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF pv_id <> NULL THEN    
-                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
+            IF p_id <> NULL THEN    
+                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_id, price_at_sale, qty)
                      VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
             END IF;
-            --- select product variant and price for jeans
-            SELECT pv.id, pvp.price INTO pv_id, pv_price FROM product_variant pv
-                JOIN product_variant_price pvp ON pvp.product_variant_id = pv.id
-                JOIN product p ON p.id = pv. product_id
-                WHERE p.label ilike '%sports coat%'
+            --- select product variant and price for sports coat
+                        SELECT 
+                p.id, pp.price INTO p_id, p_price
+                FROM product p, product_price pp
+                WHERE p.id = pp.product_id AND p.label ilike '%sports coat%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF pv_id <> NULL THEN     
-                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
-                    VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
+            IF p_id <> NULL THEN     
+                INSERT INTO sales_transaction_line (id, sales_transaction_id, product_id, price_at_sale, qty)
+                    VALUES (gen_random_uuid(), sales_transaction_id, p_id, p_price, 1);
             END IF;        
         END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE generate_sales_transaction_data ()
+CREATE OR REPLACE PROCEDURE data_generation.generate_sales_transaction_data ()
 AS
 $$
     DECLARE counter INTEGER;
@@ -275,16 +286,16 @@ $$
         TRUNCATE sales_transaction CASCADE;
         RAISE NOTICE 'Truncated Sales Transactions';
         RAISE NOTICE 'Creating base random transactions';
-        CALL generate_random_sales_transaction_data ();
+        CALL data_generation.generate_random_sales_transaction_data ();
         SELECT COUNT(*) INTO counter FROM sales_transaction;
         RAISE NOTICE 'Created % base random transactions', counter;
         RAISE NOTICE 'Creating t-shirt jeans  transactions';
-        CALL generate_tshirt_jeans_sales_transaction_data (.25);
+        CALL data_generation.generate_tshirt_jeans_sales_transaction_data (.25);
         RAISE NOTICE 'Creating polo sports coats  transactions';
-        CALL generate_polo_sports_coat_sales_transaction_data (.25);
+        CALL data_generation.generate_polo_sports_coat_sales_transaction_data (.25);
         SELECT COUNT(*) INTO counter FROM sales_transaction;
         RAISE NOTICE 'Generated % sales transactions', counter;
     END;
 $$ LANGUAGE PLPGSQL;
 
-call generate_sales_transaction_data();
+call data_generation.generate_sales_transaction_data();

@@ -44,7 +44,8 @@ CREATE SCHEMA IF NOT EXISTS internal;
 
 \echo '--> Creating the search path at the database level'
 
-ALTER DATABASE ecommerce_reference_data SET SEARCH_PATH TO api, product_reference, internal;
+ALTER DATABASE ecommerce_reference_data SET SEARCH_PATH TO api, product_reference, internal; -- permanent change
+SET SEARCH_PATH TO api, product_reference, internal; --- make sure path is available in current session
 
 -- =================================================================
 --  SECTION 2: EXTENSIONS AND CUSTOM TYPES
