@@ -4,20 +4,9 @@
 
 \c ecommerce_reference_data
 
-\echo 'Remove any previously existing data'
-\echo 'This currently breaks replication due to cross-subscription TRUNCATE CASCADE'
-
-TRUNCATE product_category CASCADE;
-TRUNCATE product_brand CASCADE;
-TRUNCATE product_variant CASCADE;
-TRUNCATE product_variant_price CASCADE;
-TRUNCATE product CASCADE;
-
-\ echo 'Completed truncating'
-
-\echo '--> Inserting test data...'
+\echo '--> Inserting data for categories, brands, and products ...'
 -- Using OVERRIDING SYSTEM VALUE to control the IDs for predictable testing.
-INSERT INTO product_category (id, label, description)
+INSERT INTO product_reference.product_category (id, label, description)
     VALUES
         (1, 'Pants', 'long trousers'),
         (2, 'Shirts', 'long sleeve and short sleeve shirts'),
@@ -29,7 +18,7 @@ INSERT INTO product_category (id, label, description)
         (6, 'Coats', 'Trench coats, duffle coats')
     ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO product_brand (id, label, description)
+INSERT INTO product_reference.product_brand (id, label, description)
     VALUES
         (1, 'Gap', 'The Gap'),
         (2, 'Boss', 'Boss'),
@@ -41,7 +30,7 @@ INSERT INTO product_brand (id, label, description)
         (8, 'Brioni', 'Brioni Tayloring')
     ON CONFLICT (id) DO NOTHING; 
 
-INSERT INTO product (id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename)
+INSERT INTO product_reference.product (id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename)
     VALUES
     --- dress shirt Gap
         (1, 2, 1, 'Dress shirt', 
@@ -270,116 +259,103 @@ INSERT INTO product (id, product_category_id, product_brand_id, label, shortdesc
     From business attire to weekend wear this waterproof trench combines practical performance with refined aesthetics. The neutral 
     color options work with any wardrobe while the timeless design ensures years of reliable service. Machine washable for easy care without 
     losing its protective qualities.
-    ','trench_coat.jpg') 
+    ','trench_coat.jpg'),
+    (13, 4, 1, 'Polo shirt',
+    'Classic short-sleeve polo shirt by The Gap offering comfort style and value for everyday wear',
+    'Classic Short Sleeve Value Polo Shirt The Gap - Premium Fit & Quality Materials
+    Upgrade your everyday wardrobe with our short sleeve value polo shirt, designed for comfort, style, and 
+    durability. Crafted from high-quality fabric, this polo offers a soft, breathable feel that keeps you cool and 
+    comfortable all day. The tailored fit provides a polished look without sacrificing ease of movement, making it 
+    perfect for work, casual outings, or weekend wear.
+    The reinforced collar and cuffs maintain structure wash after wash, while the moisture-wicking 
+    fabric helps you stay fresh in any setting. Available in a range of versatile colors, 
+    this polo pairs effortlessly with chinos, jeans, or dress pants for a sharp, put-together appearance.
+    Whether youre dressing for the office, a lunch date, or a relaxed day out, this affordable yet premium polo 
+    delivers unbeatable value without compromising on fit or fabric quality. Machine washable for easy care, 
+    its a must-have staple for any modern wardrobe.',
+    'polo_shirt.jpg'),
+    (14, 4, 2, 'Polo shirt',
+    'Classic short-sleeve polo shirt by Boss offering comfort style and value for everyday wear',
+    'Classic Short Sleeve Value Polo Shirt from Boss - Premium Fit & Quality Materials
+    Upgrade your everyday wardrobe with our short sleeve value polo shirt, designed for comfort, style, and 
+    durability. Crafted from high-quality fabric, this polo offers a soft, breathable feel that keeps you cool and 
+    comfortable all day. The tailored fit provides a polished look without sacrificing ease of movement, making it 
+    perfect for work, casual outings, or weekend wear.
+    The reinforced collar and cuffs maintain structure wash after wash, while the moisture-wicking 
+    fabric helps you stay fresh in any setting. Available in a range of versatile colors, 
+    this polo pairs effortlessly with chinos, jeans, or dress pants for a sharp, put-together appearance.
+    Whether youre dressing for the office, a lunch date, or a relaxed day out, this affordable yet premium polo 
+    delivers unbeatable value without compromising on fit or fabric quality. Machine washable for easy care, 
+    its a must-have staple for any modern wardrobe.',
+    'polo_shirt.jpg')
     ON CONFLICT (id) DO NOTHING;
 
 
---- this generates a random SKU. The standard calls for 10 digits
+DROP PROCEDURE IF EXISTS internal.generate_product_prices;
 
-DROP FUNCTION IF EXISTS generate_random_sku;
-CREATE FUNCTION generate_random_sku (prefix VARCHAR(10), suffix_length INTEGER) RETURNS VARCHAR
-    AS
-        $$
-            BEGIN
-                RETURN prefix || RPAD(TRUNC(10^(suffix_length) * RANDOM())::VARCHAR, suffix_length, '0');
-            END;
-        $$
-    LANGUAGE plpgsql;    
-
-DROP PROCEDURE IF EXISTS generate_product_variants ;
-CREATE PROCEDURE generate_product_variants ()
+CREATE PROCEDURE internal.generate_product_prices ()
     AS  
         $$
             DECLARE
                 product_record RECORD; --- this will be used to iterate over the product records
-                sizes TEXT[];
-                size TEXT;
-                colors TEXT [];
-                color TEXT;
-                fits TEXT[];
-                fit TEXT;
                 product_price NUMERIC;
                 price_variance NUMERIC;
                 inflation_adjusted_price NUMERIC;
-                product_variant_id INTEGER;
                 currency sales_currency; --- ENUM type defined earlier
                 geo sales_geo; --- ENUM type defined earlier
                 annual_inflation_rate NUMERIC := 0.03;
                 price_validity_ranges DATERANGE[] := ARRAY[
-                        '[2024-01-01, 2024-12-31]'::DATERANGE, 
-                        '[2025-01-01, 2025-12-31]'::DATERANGE,
+                        '[2024-01-01, 2024-06-30]'::DATERANGE, 
+                        '[2024-07-01, 2024-12-31]'::DATERANGE, 
+                        '[2025-01-01, 2025-06-30]'::DATERANGE,
+                        '[2025-07-01, 2025-12-31]'::DATERANGE,
                         '[2026-01-01, 2026-12-31]'::DATERANGE
                 ];
                 validity_range DATERANGE;
             BEGIN
-                FOR product_record IN SELECT id, product_category_id FROM product
+                FOR product_record IN SELECT p.id, pc.label as product_category_label
+                                            FROM product_reference.product p, product_reference.product_category pc
+                                            WHERE p.product_category_id = pc.id
                     LOOP
                         CASE
                             --- choose the value ranges for the attributes and prices
-                            WHEN product_record.product_category_id = 1 --- pants
+                            WHEN product_record.product_category_label IN ('T-Shirts','Polos', 'Pants')
                                 THEN
-                                    sizes := '{28/30, 30/32, 30/34, 32/30}';
-                                    colors := '{blue, tan}';
-                                    fits := '{classic fit, tapered fit}';
                                     product_price = 60; --- base price for shirts
                                     price_variance = 0.3; --- 30% price variance assumed
-                            WHEN product_record.product_category_id IN (2, 3, 4) --- shirts, t-shirts and polos
+                            WHEN product_record.product_category_label = 'Shirts'
                                 THEN    
-                                    sizes := '{small, medium, large}';
-                                    colors := '{white, blue, grey, pink}';
-                                    fits := '{slim fit, classic fit}';
                                     product_price = 75; --- base price for shirts
                                     price_variance = 0.3; --- 30% price variance assumed
-                            WHEN product_record.product_category_id IN (5,6) --- coats and jackets
+                            WHEN product_record.product_category_label IN ('Jackets', 'Coats')
                                 THEN    
-                                    sizes := '{small, medium, large}';
-                                    colors := '{blue, brown}';
-                                    fits := '{slim fit, classic fit}';
                                     product_price = 250; --- base price for shirts
                                     price_variance = 0.15; --- 15% price variance assumed
                             ELSE
-                                    sizes := '{small, medium, large}';
-                                    colors := '{blue, brown}';
-                                    fits := '{slim fit, classic fit}';
                                     product_price = 100; 
                                     price_variance = 0.15; --- 15% price variance assumed
                         END CASE;
                         --- create the data entries by iterating over size, color and fit
                         --- this could be optimized for larger commit blocks
-                        FOREACH size IN ARRAY sizes
+ 
+                        FOREACH validity_range IN ARRAY price_validity_ranges
                             LOOP
-                                FOREACH color IN ARRAY colors  
+                                inflation_adjusted_price := product_price;
+                                --- iterate over the product geos
+                                FOREACH geo IN ARRAY ENUM_RANGE (null::sales_geo) -- convert enum type to array for iteration
                                     LOOP
-                                        FOREACH fit in ARRAY fits 
-                                            LOOP
-                                                --- adding the product variant. Returning the id, so that we can also add the prices
-                                                INSERT INTO product_variant (product_id, attributes, upc)
-                                                    VALUES (
-                                                        product_record.id, 
-                                                        jsonb_build_object ('size', size, 'color', color, 'fit', fit ),
-                                                        generate_random_sku ('5432', 6)
-                                                        ) RETURNING id INTO product_variant_id; --- product_variant id is needed to set the price  
-                                                --- iterate over the price_validity_ranges
-                                                FOREACH validity_range IN ARRAY price_validity_ranges
-                                                    LOOP
-                                                        inflation_adjusted_price := product_price;
-                                                        --- iterate over the product geos
-                                                        FOREACH geo IN ARRAY ENUM_RANGE (null::sales_geo) -- convert enum type to array for iteration
-                                                            LOOP
-                                                                IF geo = 'US' THEN currency := 'USD'; ELSE currency := 'EURO'; END IF;
-                                                                inflation_adjusted_price := inflation_adjusted_price + (inflation_adjusted_price * annual_inflation_rate);
-                                                                INSERT INTO product_variant_price (product_variant_id, price, currency, geography, validity, current)
-                                                                VALUES (
-                                                                    product_variant_id,
-                                                                    inflation_adjusted_price + (random() * price_variance * product_price),
-                                                                    currency,
-                                                                    geo, 
-                                                                    validity_range,
-                                                                    false --- by default set price validity as false. The sproc update_current_price_flags() has to be called afterwards
-                                                                    );
-                                                            END LOOP;
-                                                    END LOOP;
-                                            END LOOP;
+                                        IF geo = 'US' THEN currency := 'USD'; ELSE currency := 'EURO'; END IF;
+                                        inflation_adjusted_price := inflation_adjusted_price + (inflation_adjusted_price * annual_inflation_rate);
+                                        INSERT 
+                                            INTO product_reference.product_price (product_id, price, currency, geography, validity, current)
+                                            VALUES (
+                                                product_record.id,
+                                                inflation_adjusted_price + (random() * price_variance * product_price),
+                                                currency,
+                                                geo, 
+                                                validity_range,
+                                                false --- by default set price validity as false. The sproc update_current_price_flags() has to be called afterwards
+                                                );
                                     END LOOP;
                             END LOOP;
                     END LOOP;
@@ -388,17 +364,15 @@ CREATE PROCEDURE generate_product_variants ()
     LANGUAGE plpgsql;
 
 \echo '*** Generating variants and prices ***'
-CALL generate_product_variants();
+CALL internal.generate_product_prices();
 
 \echo '*** Setting current price flags ***'
-CALL update_current_price_flags();
+CALL api.update_current_price_flags();
 
 \echo 'Data set created'
-\d 
 
-SELECT COUNT(*) AS product_count FROM product;
-SELECT COUNT(*) AS product_variant_count FROM product_variant;
-SELECT COUNT(*) AS product_variant__price_count FROM product_variant_price;
+SELECT COUNT(*) AS product_count FROM product_reference.product;
+SELECT COUNT(*) AS product_price_count FROM product_reference.product_price;
 
 
 \echo '*** Script Finished Successfully ***'
