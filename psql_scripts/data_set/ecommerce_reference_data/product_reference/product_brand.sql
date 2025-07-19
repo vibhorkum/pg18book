@@ -9,3 +9,5 @@ INSERT INTO product_reference.product_brand (id, label, description)
         (7, 'Eton', 'Eton Tayloring'),
         (8, 'Brioni', 'Brioni Tayloring')
     ON CONFLICT (id) DO NOTHING; 
+
+    

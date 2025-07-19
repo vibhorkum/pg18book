@@ -31,6 +31,10 @@
 \i data_set/ecommerce_reference_data/product_reference/product.sql
 \i data_set/ecommerce_reference_data/product_reference/product_price.sql
 
+--- this resets the sequences so that the API calls don't conflict
+
+\i data_set/ecommerce_reference_data/product_reference/alter_product_reference_sequences.sql
+
 \echo '... loading US ecommerce data for customers and sales'
 
 \c us_ecommerce_data

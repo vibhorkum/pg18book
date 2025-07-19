@@ -115,11 +115,63 @@ ALTER TABLE product_reference.product_price REPLICA IDENTITY FULL;
 
 -- =================================================================
 --  SECTION 4: STORED PROCEDURES AND MAINTENANCE QUERIES
+-- add/edit/delete product brands
+-- add/edit/delete product categories
+-- add/edit/delete products
+-- add/edit/delete product prices
+-- view for products with prices
 -- =================================================================
 
 \echo '--> Creating stored procedures for data maintenance...'
 
--- [IMPROVEMENT] Rewritten procedure to be more efficient.
+
+--- stored procedures
+
+CREATE OR REPLACE FUNCTION api.add_product_category(p_label VARCHAR(50), p_description TEXT) RETURNS INTEGER
+    AS 
+    $$
+        INSERT INTO product_category (label, description) 
+            VALUES (p_label, p_description) 
+            RETURNING id;
+    $$ LANGUAGE SQL;   
+
+COMMENT ON VIEW api.add_product_category IS 'adds a new product category';
+
+CREATE OR REPLACE FUNCTION api.update_product_category(p_id INTEGER, p_label VARCHAR(50), p_description TEXT) RETURNS INTEGER
+    AS 
+    $$
+        UPDATE product_category 
+            SET label = p_label, description = p_description
+            WHERE id = p_id
+            RETURNING id;
+    $$ LANGUAGE SQL; 
+
+COMMENT ON VIEW api.update_product_category IS 'updates a product category';
+
+
+CREATE OR REPLACE FUNCTION api.delete_product_category(p_id INTEGER) RETURNS INTEGER
+    AS 
+    $$
+    DECLARE
+        delete_count INTEGER := -1;
+    BEGIN    
+        WITH deleted_rows AS (
+            DELETE FROM product_category WHERE id = p_id RETURNING *)
+            SELECT COUNT(*) FROM deleted_rows INTO delete_count;
+        RETURN delete_count;
+    EXCEPTION
+    --- 23503 & 2300
+        WHEN integrity_constraint_violation or check_violation THEN 
+            RAISE NOTICE 'Foreign Key Violation. Delete of product category % failed', p_id;
+            RETURN delete_count;
+        WHEN others THEN
+            RAISE NOTICE 'Delete of product category % failed', p_id;
+            RETURN delete_count;
+    END        
+    $$ LANGUAGE PLPGSQL;   
+
+COMMENT ON VIEW api.update_product_category IS 'deletes a product category. Returns -1 on error, otherwise returns the number of rows deleted';      
+
 CREATE OR REPLACE PROCEDURE api.update_current_price_flags()
     LANGUAGE SQL
     AS $$
@@ -127,26 +179,40 @@ CREATE OR REPLACE PROCEDURE api.update_current_price_flags()
     SET current = (validity @> current_date);
 $$;
 
-\echo '--> Example maintenance queries:'
-\echo '    1. To run the procedure to update all flags: CALL update_current_price_flags();'
-\echo '    2. To find products/variants without a current valid price:'
 
--- [IMPROVEMENT] Query to find variants without a current price.
-/*
---- needs rework
-SELECT
-    v.id AS variant_id,
-    v.upc,
-    p.label AS product_label
-FROM
-    product_reference.product p
-JOIN
-    product_reference.product p ON v.product_id = p.id
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM product_reference.product_price pp
-    WHERE pp.product_id = v.id AND pvp.current = true
-);
-*/
+--- views
+
+--- identify any products without current prices
+CREATE OR REPLACE VIEW api.product_without_current_price AS 
+    SELECT p.id, p.label FROM product p 
+        WHERE NOT EXISTS 
+        (SELECT 1 FROM product_price pp 
+            WHERE pp.current = TRUE 
+                AND pp.product_id = p.id);
+
+COMMENT ON VIEW api.product_without_current_price IS 'identify any products without current prices';    
+
+--- show products with brand, category, and pricing
+CREATE OR REPLACE VIEW api.product_full_vw AS  
+    SELECT 
+        p.id product_id, p.label product_label, p.shortdescription product_shortdescription, p.longdescription product_longdescription, 
+        pc.label product_category_label, pc.description product_category_description,
+        pb.label product_brand_label, pb.description product_brand_description,
+        pp.price, pp.currency, pp.geography, pp.validity, pp.current  
+        FROM product p
+        JOIN product_category pc ON p.product_category_id = pc.id
+        JOIN product_brand pb ON p.product_brand_id = pb.id
+        JOIN product_price pp ON pp.product_id = p.id
+        ORDER BY p.id, pp.geography, pp.validity ASC;
+
+COMMENT ON VIEW api.product_full_vw IS 'show products with brand, category, and pricing expanded with all columns';
+
+--- focused view with a subset of columns
+CREATE OR REPLACE VIEW api.product_focus_vw AS 
+    SELECT product_id, product_label, product_shortdescription, product_category_label, product_brand_label, price, currency, validity, current
+        FROM product_full_vw
+        WHERE validity @> current_date;
+
+COMMENT ON VIEW api.product_focus_vw IS 'focused view of products and prices that are currently valid (subset of columns)';
 
 \echo '*** Script Finished Successfully ***'
