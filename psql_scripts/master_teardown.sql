@@ -7,11 +7,13 @@
 
 */
 
+--- make sure psql stops after the first error
+\set ON_ERROR_STOP on
 
 \c postgres
 
 \echo '.... running remove_replication.sql'
-\i remove_replication.sql
+\i replication/remove_replication.sql
 
 \echo '.... running cleanup_databases.sql'
 \i cleanup_databases.sql

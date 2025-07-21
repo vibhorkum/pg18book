@@ -11,38 +11,41 @@
 
 */
 
+--- make sure psql stops after the first error
+\set ON_ERROR_STOP on
+
 \c postgres
 
-\echo '.... executing reference_data.sql'
-\i reference_data.sql
+\echo '.... database_definitions/ecommerce_reference_data.sql'
+\i database_definitions/ecommerce_reference_data.sql
 
-\echo '.... executing us_ecommerce_data.sql'
-\i us_ecommerce_data.sql
+\echo '.... executing database_definitions/us_ecommerce_data.sql'
+\i database_definitions/us_ecommerce_data.sql
 
-\echo '.... executing replication_setup.sql'
-\i replication_setup.sql
+\echo '.... executing replication/replication_setup.sql'
+\i replication/replication_setup.sql
 
 \echo '.... loading product reference data'
 
 \c ecommerce_reference_data
 
-\i data_set/ecommerce_reference_data/product_reference/product_brand.sql
-\i data_set/ecommerce_reference_data/product_reference/product_category.sql
-\i data_set/ecommerce_reference_data/product_reference/product.sql
-\i data_set/ecommerce_reference_data/product_reference/product_price.sql
+\i data_sets/ecommerce_reference_data/product_reference/product_brand.sql
+\i data_sets/ecommerce_reference_data/product_reference/product_category.sql
+\i data_sets/ecommerce_reference_data/product_reference/product.sql
+\i data_sets/ecommerce_reference_data/product_reference/product_price.sql
 
 --- this resets the sequences so that the API calls don't conflict
 
-\i data_set/ecommerce_reference_data/product_reference/alter_product_reference_sequences.sql
+\i data_sets/ecommerce_reference_data/product_reference/alter_product_reference_sequences.sql
 
 \echo '... loading US ecommerce data for customers and sales'
 
 \c us_ecommerce_data
 
-\i data_set/us_ecommerce_data/us_customer/customer.sql
-\i data_set/us_ecommerce_data/us_sales/sales_transaction.sql
-\i data_set/us_ecommerce_data/us_sales/sales_transaction_lines.sql
-\i data_set/us_ecommerce_data/inventory/product_inventory.sql
+\i data_sets/us_ecommerce_data/us_customer/customer.sql
+\i data_sets/us_ecommerce_data/us_sales/sales_transaction.sql
+\i data_sets/us_ecommerce_data/us_sales/sales_transaction_lines.sql
+\i data_sets/us_ecommerce_data/inventory/product_inventory.sql
 
 
 \echo 'Done with setup'

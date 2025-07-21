@@ -135,7 +135,6 @@ CREATE OR REPLACE FUNCTION api.add_product_category(p_label VARCHAR(50), p_descr
             RETURNING id;
     $$ LANGUAGE SQL;   
 
-COMMENT ON VIEW api.add_product_category IS 'adds a new product category';
 
 CREATE OR REPLACE FUNCTION api.update_product_category(p_id INTEGER, p_label VARCHAR(50), p_description TEXT) RETURNS INTEGER
     AS 
@@ -145,8 +144,6 @@ CREATE OR REPLACE FUNCTION api.update_product_category(p_id INTEGER, p_label VAR
             WHERE id = p_id
             RETURNING id;
     $$ LANGUAGE SQL; 
-
-COMMENT ON VIEW api.update_product_category IS 'updates a product category';
 
 
 CREATE OR REPLACE FUNCTION api.delete_product_category(p_id INTEGER) RETURNS INTEGER
@@ -170,7 +167,6 @@ CREATE OR REPLACE FUNCTION api.delete_product_category(p_id INTEGER) RETURNS INT
     END        
     $$ LANGUAGE PLPGSQL;   
 
-COMMENT ON VIEW api.update_product_category IS 'deletes a product category. Returns -1 on error, otherwise returns the number of rows deleted';      
 
 CREATE OR REPLACE PROCEDURE api.update_current_price_flags()
     LANGUAGE SQL
@@ -190,7 +186,6 @@ CREATE OR REPLACE VIEW api.product_without_current_price AS
             WHERE pp.current = TRUE 
                 AND pp.product_id = p.id);
 
-COMMENT ON VIEW api.product_without_current_price IS 'identify any products without current prices';    
 
 --- show products with brand, category, and pricing
 CREATE OR REPLACE VIEW api.product_full_vw AS  
@@ -205,7 +200,6 @@ CREATE OR REPLACE VIEW api.product_full_vw AS
         JOIN product_price pp ON pp.product_id = p.id
         ORDER BY p.id, pp.geography, pp.validity ASC;
 
-COMMENT ON VIEW api.product_full_vw IS 'show products with brand, category, and pricing expanded with all columns';
 
 --- focused view with a subset of columns
 CREATE OR REPLACE VIEW api.product_focus_vw AS 
@@ -213,6 +207,5 @@ CREATE OR REPLACE VIEW api.product_focus_vw AS
         FROM product_full_vw
         WHERE validity @> current_date;
 
-COMMENT ON VIEW api.product_focus_vw IS 'focused view of products and prices that are currently valid (subset of columns)';
 
 \echo '*** Script Finished Successfully ***'
