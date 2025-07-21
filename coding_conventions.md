@@ -20,7 +20,7 @@ Table names are singluar, for example: _product_ instead of _product**s**_
 
 **Column names** should be meanginul and avoid abbreviations. for example _description_ and not _desc_.
 
-**Primary keya**, especially synthetic keys that are used as primary keys, are called _id_ (preferred) or _<table_name>.id_
+**Primary key**, especially synthetic keys that are used as primary keys, are called _id_ (preferred) or _<table_name>.id_
 
 **Foreign key references** should combine the table name and the column name using snake case notation. For example _product_id_ referes to the column _id_ in the table _product_.
 In the definition for the table _product_price_ this could be used as follows
@@ -52,7 +52,6 @@ SELECT id, description
     FROM product_reference.product 
     WHERE description ILIKE '%jeans%'
     ORDER BY description ASC;
-
 ```
 
 
