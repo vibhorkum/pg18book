@@ -115,71 +115,123 @@ ALTER TABLE product_reference.product_price REPLICA IDENTITY FULL;
 
 -- =================================================================
 --  SECTION 4: STORED PROCEDURES AND MAINTENANCE QUERIES
--- add/edit/delete product brands
 -- add/edit/delete product categories
+-- add/edit/delete product brands
 -- add/edit/delete products
 -- add/edit/delete product prices
 -- view for products with prices
 -- =================================================================
 
-\echo '--> Creating stored procedures for data maintenance...'
+\echo '--> Creating stored procedures and function for data maintenance...'
 
 
---- stored procedures
+/*
+    API definitions for product_reference.product_category
+    create_<table_name> will return the new record if the update is successful, _NULL_ otherwise. 
+    update_<table_name> will return the new record, and the old record if the update is successful, NULL otherwise. 
+    delete__<table_name> will return the deleted record, _NULL_ otherwise.
+    **Read** is implemented through the _<table_name>__vw_ view (or _<table_name>__mv_ for a materialized view)
 
-CREATE OR REPLACE FUNCTION api.add_product_category(p_label VARCHAR(50), p_description TEXT) RETURNS INTEGER
-    AS 
-    $$
+
+*/
+
+/*
+    Product Category API
+    * api.add_product_category
+    * api.update_product_category
+    * api.delete_product_category
+    * api.vw_product_category
+*/
+
+CREATE OR REPLACE FUNCTION 
+        api.add_product_category(
+        p_label VARCHAR(50), 
+        p_description TEXT) 
+        RETURNS product_category
+    AS
+      $$
         INSERT INTO product_category (label, description) 
             VALUES (p_label, p_description) 
-            RETURNING id;
-    $$ LANGUAGE SQL;   
+            RETURNING *;
+    $$ LANGUAGE SQL;    
 
 
-CREATE OR REPLACE FUNCTION api.update_product_category(p_id INTEGER, p_label VARCHAR(50), p_description TEXT) RETURNS INTEGER
+CREATE OR REPLACE FUNCTION api.update_product_category(
+        IN p_id INTEGER, 
+        IN p_label VARCHAR(50), 
+        IN p_description TEXT,
+        OUT old_id INTEGER,
+        OUT old_label TEXT,
+        OUT old_description TEXT,
+        OUT new_id INTEGER,
+        OUT new_label TEXT,
+        OUT new_description TEXT)
     AS 
     $$
+        DECLARE
+        BEGIN 
         UPDATE product_category 
             SET label = p_label, description = p_description
             WHERE id = p_id
-            RETURNING id;
-    $$ LANGUAGE SQL; 
-
-
-CREATE OR REPLACE FUNCTION api.delete_product_category(p_id INTEGER) RETURNS INTEGER
+            RETURNING 
+                old.id, old.label, old.description, new.id, new.label,new.description 
+                INTO 
+                old_id,old_label, old_description, new_id, new_label, new_description;
+        END    
+    $$ LANGUAGE PLPGSQL; 
+    
+CREATE OR REPLACE FUNCTION api.delete_product_category(
+        p_id INTEGER) 
+    RETURNS product_category
     AS 
     $$
     DECLARE
-        delete_count INTEGER := -1;
+        v_record product_category := NULL;
     BEGIN    
-        WITH deleted_rows AS (
-            DELETE FROM product_category WHERE id = p_id RETURNING *)
-            SELECT COUNT(*) FROM deleted_rows INTO delete_count;
-        RETURN delete_count;
+            DELETE FROM product_category WHERE id = p_id RETURNING * INTO v_record;
+            RETURN v_record;
     EXCEPTION
     --- 23503 & 2300
         WHEN integrity_constraint_violation or check_violation THEN 
             RAISE NOTICE 'Foreign Key Violation. Delete of product category % failed', p_id;
-            RETURN delete_count;
+            RETURN v_record;
         WHEN others THEN
             RAISE NOTICE 'Delete of product category % failed', p_id;
-            RETURN delete_count;
+            RETURN v_record;
+    
     END        
     $$ LANGUAGE PLPGSQL;   
 
+CREATE OR REPLACE VIEW api.vw_product_catgory AS
+    SELECT id, label, description FROM product_category;
 
+/*
+    Product Brand API
+    * api.add_product_brand
+    * api.update_product_brand
+    * api.delete_product_brand
+    * api.vw_product_brand
+*/
+
+CREATE OR REPLACE VIEW api.vw_product_brand AS
+    SELECT id, label, description FROM product_brand;
+
+
+
+/*
+    Miscellaneous API elements
+
+
+*/
 CREATE OR REPLACE PROCEDURE api.update_current_price_flags()
     LANGUAGE SQL
     AS $$
     UPDATE product_reference.product_price
     SET current = (validity @> current_date);
-$$;
-
-
---- views
+    $$;
 
 --- identify any products without current prices
-CREATE OR REPLACE VIEW api.product_without_current_price AS 
+CREATE OR REPLACE VIEW api.vw_product_without_current_price AS 
     SELECT p.id, p.label FROM product p 
         WHERE NOT EXISTS 
         (SELECT 1 FROM product_price pp 
@@ -187,8 +239,21 @@ CREATE OR REPLACE VIEW api.product_without_current_price AS
                 AND pp.product_id = p.id);
 
 
+--- views
+
+
+
+CREATE OR REPLACE VIEW api.vw_product AS
+    SELECT id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename FROM product_brand;    
+
+CREATE OR REPLACE VIEW api.vw_product_price AS
+    SELECT id, product_id, price, currency, geography, validity, current FROM product_price;      
+
+
+
+
 --- show products with brand, category, and pricing
-CREATE OR REPLACE VIEW api.product_full_vw AS  
+CREATE OR REPLACE VIEW api.vw_product_full AS  
     SELECT 
         p.id product_id, p.label product_label, p.shortdescription product_shortdescription, p.longdescription product_longdescription, 
         pc.label product_category_label, pc.description product_category_description,
@@ -202,9 +267,9 @@ CREATE OR REPLACE VIEW api.product_full_vw AS
 
 
 --- focused view with a subset of columns
-CREATE OR REPLACE VIEW api.product_focus_vw AS 
+CREATE OR REPLACE VIEW api.vw_product_focus AS 
     SELECT product_id, product_label, product_shortdescription, product_category_label, product_brand_label, price, currency, validity, current
-        FROM product_full_vw
+        FROM vw_product_full
         WHERE validity @> current_date;
 
 
