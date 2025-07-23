@@ -50,13 +50,17 @@ SELECT pg_sleep(10);
 
 \i data_sets/us_ecommerce_data/us_customer/customer.sql
 \i data_sets/us_ecommerce_data/us_sales/sales_transaction.sql
-\i data_sets/us_ecommerce_data/us_sales/sales_transaction_lines.sql
+\i data_sets/us_ecommerce_data/us_sales/sales_transaction_line.sql
 \i data_sets/us_ecommerce_data/inventory/product_inventory.sql
 
 \echo '... loading EU ecommerce data for customers and sales'
 
 \c eu_ecommerce_data
 \i data_sets/eu_ecommerce_data/eu_customer/customer.sql
+\i data_sets/eu_ecommerce_data/eu_sales/sales_transaction.sql
+\i data_sets/eu_ecommerce_data/eu_sales/sales_transaction_line.sql
+\i data_sets/eu_ecommerce_data/inventory/product_inventory.sql
+
 
 \echo 'Done with setup'
 
