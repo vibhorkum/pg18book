@@ -22,6 +22,9 @@
 \echo '.... executing database_definitions/us_ecommerce_data.sql'
 \i database_definitions/us_ecommerce_data.sql
 
+\echo '.... executing database_definitions/eu_ecommerce_data.sql'
+\i database_definitions/eu_ecommerce_data.sql
+
 \echo '.... executing replication/replication_setup.sql'
 \i replication/replication_setup.sql
 
@@ -33,6 +36,9 @@
 \i data_sets/ecommerce_reference_data/product_reference/product_category.sql
 \i data_sets/ecommerce_reference_data/product_reference/product.sql
 \i data_sets/ecommerce_reference_data/product_reference/product_price.sql
+
+\echo '.... wait for reference data replication to complete'
+SELECT pg_sleep(10);
 
 --- this resets the sequences so that the API calls don't conflict
 
@@ -47,6 +53,10 @@
 \i data_sets/us_ecommerce_data/us_sales/sales_transaction_lines.sql
 \i data_sets/us_ecommerce_data/inventory/product_inventory.sql
 
+\echo '... loading EU ecommerce data for customers and sales'
+
+\c eu_ecommerce_data
+\i data_sets/eu_ecommerce_data/eu_customer/customer.sql
 
 \echo 'Done with setup'
 

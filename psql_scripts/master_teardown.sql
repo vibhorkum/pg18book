@@ -7,8 +7,7 @@
 
 */
 
---- make sure psql stops after the first error
-\set ON_ERROR_STOP on
+\set ON_ERROR_STOP off 
 
 \c postgres
 

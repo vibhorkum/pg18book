@@ -9,6 +9,7 @@
 -- Step 0: Define variables for the databases to be dropped
 \set db_to_drop_1 'ecommerce_reference_data'
 \set db_to_drop_2 'us_ecommerce_data'
+\set db_to_drop_3 'eu_ecommerce_data'
 
 \echo '*** Database Cleanup Script Started ***'
 \echo 'WARNING: This script will permanently delete databases:' :'db_to_drop_1' 'and' :'db_to_drop_2'
@@ -55,7 +56,23 @@ DROP DATABASE IF EXISTS :db_to_drop_2 WITH (FORCE);
 \echo ' '
 
 -- =================================================================
---  Step 3: Verification
+--  Step 2: Terminate connections and drop the third database
+-- =================================================================
+
+\echo '--> Terminating all connections to database:' :'db_to_drop_3'
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = :'db_to_drop_3'
+  AND pid <> pg_backend_pid();
+
+\echo '--> Dropping database:' :'db_to_drop_2'
+DROP DATABASE IF EXISTS :db_to_drop_3 WITH (FORCE);
+
+\echo '--> Database' :'db_to_drop_3' 'has been dropped.'
+\echo ' '
+
+-- =================================================================
+--  Step 4: Verification
 -- =================================================================
 \echo '--> Verifying that databases are gone. The following list should not contain the dropped databases:'
 \l

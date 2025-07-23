@@ -115,11 +115,11 @@ ALTER TABLE product_reference.product_price REPLICA IDENTITY FULL;
 
 -- =================================================================
 --  SECTION 4: STORED PROCEDURES AND MAINTENANCE QUERIES
--- add/edit/delete product categories
--- add/edit/delete product brands
--- add/edit/delete products
--- add/edit/delete product prices
--- view for products with prices
+-- add/edit/delete/view product categories 
+-- add/edit/delete/view product brands
+-- add/edit/delete/view products
+-- add/edit/delete/view product prices
+-- view for products with prices (full and focus)
 -- =================================================================
 
 \echo '--> Creating stored procedures and function for data maintenance...'
@@ -127,9 +127,7 @@ ALTER TABLE product_reference.product_price REPLICA IDENTITY FULL;
 
 /*
     API definitions for product_reference.product_category
-    create_<table_name> will return the new record if the update is successful, _NULL_ otherwise. 
-    update_<table_name> will return the new record, and the old record if the update is successful, NULL otherwise. 
-    delete__<table_name> will return the deleted record, _NULL_ otherwise.
+    manage_<table_name> can be called with INSERT, UPDATE, and DELETE operations and returns the old and new records as JSONB
     **Read** is implemented through the _<table_name>__vw_ view (or _<table_name>__mv_ for a materialized view)
 
 
@@ -137,86 +135,306 @@ ALTER TABLE product_reference.product_price REPLICA IDENTITY FULL;
 
 /*
     Product Category API
-    * api.add_product_category
-    * api.update_product_category
-    * api.delete_product_category
+    * api.manage_product_category
     * api.vw_product_category
 */
 
-CREATE OR REPLACE FUNCTION 
-        api.add_product_category(
-        p_label VARCHAR(50), 
-        p_description TEXT) 
-        RETURNS product_category
-    AS
-      $$
-        INSERT INTO product_category (label, description) 
-            VALUES (p_label, p_description) 
-            RETURNING *;
-    $$ LANGUAGE SQL;    
 
+CREATE OR REPLACE FUNCTION api.manage_product_category (
+    p_operation_type TEXT,
+    p_id INTEGER DEFAULT NULL,
+    p_label character varying(50) DEFAULT NULL,
+    p_description TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    operation_type TEXT,
+    old_value JSONB,
+    new_value JSONB
+)
+AS $$
+DECLARE
+    v_old_row JSONB;
+    v_new_row JSONB;
+    v_inserted_id JSONB;
+BEGIN
+    IF p_operation_type = 'INSERT' THEN
+        INSERT INTO product_category (label, description)
+            VALUES (p_label, p_description)
+            RETURNING to_jsonb(NEW) INTO v_new_row;
+        RETURN QUERY SELECT 
+            'INSERT'::TEXT AS operation_type,
+            NULL::JSONB AS old_value, --- there is no old value
+            v_new_row AS new_value;
 
-CREATE OR REPLACE FUNCTION api.update_product_category(
-        IN p_id INTEGER, 
-        IN p_label VARCHAR(50), 
-        IN p_description TEXT,
-        OUT old_id INTEGER,
-        OUT old_label TEXT,
-        OUT old_description TEXT,
-        OUT new_id INTEGER,
-        OUT new_label TEXT,
-        OUT new_description TEXT)
-    AS 
-    $$
-        DECLARE
-        BEGIN 
+    ELSEIF p_operation_type = 'UPDATE' THEN
         UPDATE product_category 
-            SET label = p_label, description = p_description
+            SET
+                label = p_label,
+                description = p_description
             WHERE id = p_id
-            RETURNING 
-                old.id, old.label, old.description, new.id, new.label,new.description 
-                INTO 
-                old_id,old_label, old_description, new_id, new_label, new_description;
-        END    
-    $$ LANGUAGE PLPGSQL; 
-    
-CREATE OR REPLACE FUNCTION api.delete_product_category(
-        p_id INTEGER) 
-    RETURNS product_category
-    AS 
-    $$
-    DECLARE
-        v_record product_category := NULL;
-    BEGIN    
-            DELETE FROM product_category WHERE id = p_id RETURNING * INTO v_record;
-            RETURN v_record;
-    EXCEPTION
-    --- 23503 & 2300
-        WHEN integrity_constraint_violation or check_violation THEN 
-            RAISE NOTICE 'Foreign Key Violation. Delete of product category % failed', p_id;
-            RETURN v_record;
-        WHEN others THEN
-            RAISE NOTICE 'Delete of product category % failed', p_id;
-            RETURN v_record;
-    
-    END        
-    $$ LANGUAGE PLPGSQL;   
+            RETURNING to_jsonb (OLD), to_jsonb (NEW) INTO v_old_row, v_new_row;
+        -- If no row was updated (p_id not found), return nothing
+        IF NOT FOUND THEN
+            RETURN;
+        END IF;
+        -- Return the old and new values as part of a table record
+        RETURN QUERY SELECT 
+            'UPDATE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'DELETE' THEN
+        DELETE FROM product_category 
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD) INTO v_old_row;
+             -- If no row was deleted (p_id not found), return nothing
+            IF NOT FOUND THEN
+                RETURN;
+            END IF;      
+        RETURN QUERY SELECT 
+            'DELETE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            NULL::JSONB AS new_value;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid operation type: %', p_operation_type;
+    END IF;
+END;
+$$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE VIEW api.vw_product_catgory AS
     SELECT id, label, description FROM product_category;
 
 /*
     Product Brand API
-    * api.add_product_brand
-    * api.update_product_brand
-    * api.delete_product_brand
+    * api.manage_product_brand
     * api.vw_product_brand
 */
+
+CREATE OR REPLACE FUNCTION api.manage_product_brand (
+    p_operation_type TEXT,
+    p_id INTEGER DEFAULT NULL,
+    p_label character varying(50) DEFAULT NULL,
+    p_description TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    operation_type TEXT,
+    old_value JSONB,
+    new_value JSONB
+)
+AS $$
+DECLARE
+    v_old_row JSONB;
+    v_new_row JSONB;
+    v_inserted_id JSONB;
+BEGIN
+    IF p_operation_type = 'INSERT' THEN
+        INSERT INTO product_brand (label, description)
+            VALUES (p_label, p_description)
+            RETURNING to_jsonb(NEW) INTO v_new_row;
+        RETURN QUERY SELECT 
+            'INSERT'::TEXT AS operation_type,
+            NULL::JSONB AS old_value, --- there is no old value
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'UPDATE' THEN
+        UPDATE product_brand 
+            SET
+                label = p_label,
+                description = p_description
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD), to_jsonb (NEW) INTO v_old_row, v_new_row;
+        -- If no row was updated (p_id not found), return nothing
+        IF NOT FOUND THEN
+            RETURN;
+        END IF;
+        -- Return the old and new values as part of a table record
+        RETURN QUERY SELECT 
+            'UPDATE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'DELETE' THEN
+        DELETE FROM product_brand 
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD) INTO v_old_row;
+             -- If no row was deleted (p_id not found), return nothing
+            IF NOT FOUND THEN
+                RETURN;
+            END IF;      
+        RETURN QUERY SELECT 
+            'DELETE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            NULL::JSONB AS new_value;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid operation type: %', p_operation_type;
+    END IF;
+END;
+$$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE VIEW api.vw_product_brand AS
     SELECT id, label, description FROM product_brand;
 
+/*
+    Product  API
+    * api.manage_product
+    * api.vw_product
+    * api.vw_product_full (category, brand, product, price)
+    * api.vw_product_focus (subset of columns from vw_product_full)
+*/
 
+CREATE OR REPLACE FUNCTION api.manage_product (
+    p_operation_type TEXT,
+    p_id INTEGER DEFAULT NULL,
+    p_product_category_id INTEGER DEFAULT NULL,
+    p_product_brand_id INTEGER DEFAULT NULL,
+    p_label VARCHAR(50) DEFAULT NULL,
+    p_shortdescription VARCHAR(200) DEFAULT NULL,
+    p_longdescription TEXT DEFAULT NULL,
+    p_image_filename VARCHAR(50) DEFAULT NULL
+)
+RETURNS TABLE (
+    operation_type TEXT,
+    old_value JSONB,
+    new_value JSONB
+)
+AS $$
+DECLARE
+    v_old_row JSONB;
+    v_new_row JSONB;
+    v_inserted_id JSONB;
+BEGIN
+    IF p_operation_type = 'INSERT' THEN
+        INSERT INTO product (product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename)
+            VALUES (p_product_category_id, p_product_brand_id, p_label, p_shortdescription, p_longdescription, p_image_filename)
+            RETURNING to_jsonb(NEW) INTO v_new_row;
+        RETURN QUERY SELECT 
+            'INSERT'::TEXT AS operation_type,
+            NULL::JSONB AS old_value, --- there is no old value
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'UPDATE' THEN
+        UPDATE product 
+            SET
+                product_category_id = p_product_category_id,
+                product_brand_id = p_product_brand_id,
+                label = p_label,
+                shortdescription = p_shortdescription,
+                longdescription = p_longdescription,
+                image_filename = p_image_filename
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD), to_jsonb (NEW) INTO v_old_row, v_new_row;
+        -- If no row was updated (p_id not found), return nothing
+        IF NOT FOUND THEN
+            RETURN;
+        END IF;
+        -- Return the old and new values as part of a table record
+        RETURN QUERY SELECT 
+            'UPDATE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'DELETE' THEN
+        DELETE FROM product
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD) INTO v_old_row;
+             -- If no row was deleted (p_id not found), return nothing
+            IF NOT FOUND THEN
+                RETURN;
+            END IF;      
+        RETURN QUERY SELECT 
+            'DELETE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            NULL::JSONB AS new_value;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid operation type: %', p_operation_type;
+    END IF;
+END;
+$$ LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE VIEW api.vw_product_brand AS
+    SELECT id, label, description FROM product_brand;
+
+/*
+    Product Price API
+    * api.manage_product_price
+    * api.vw_product_price
+*/
+
+CREATE OR REPLACE FUNCTION api.manage_product_price (
+    p_operation_type TEXT,
+    p_id INTEGER DEFAULT NULL,
+    p_product_id INTEGER DEFAULT NULL,
+    p_price NUMERIC DEFAULT NULL,
+    p_currency sales_currency DEFAULT NULL,
+    p_geography sales_geo DEFAULT NULL,
+    p_validity DATERANGE DEFAULT NULL,
+    p_current BOOLEAN DEFAULT NULL
+)
+RETURNS TABLE (
+    operation_type TEXT,
+    old_value JSONB,
+    new_value JSONB
+)
+AS $$
+DECLARE
+    v_old_row JSONB;
+    v_new_row JSONB;
+    v_inserted_id JSONB;
+BEGIN
+    IF p_operation_type = 'INSERT' THEN
+        INSERT INTO product_price (product_id, price, currency, geography, validity, current)
+            VALUES (p_product_id, p_price, p_currency, p_geography, p_validity, p_current)
+            RETURNING to_jsonb(NEW) INTO v_new_row;
+        RETURN QUERY SELECT 
+            'INSERT'::TEXT AS operation_type,
+            NULL::JSONB AS old_value, --- there is no old value
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'UPDATE' THEN
+        UPDATE product_price 
+            SET
+                product_id = p_product_id,
+                price = p_price,
+                currency = p_currency,
+                geography = p_geography,
+                validity = p_validity,
+                current = p_current
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD), to_jsonb (NEW) INTO v_old_row, v_new_row;
+        -- If no row was updated (p_id not found), return nothing
+        IF NOT FOUND THEN
+            RETURN;
+        END IF;
+        -- Return the old and new values as part of a table record
+        RETURN QUERY SELECT 
+            'UPDATE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            v_new_row AS new_value;
+
+    ELSEIF p_operation_type = 'DELETE' THEN
+        DELETE FROM product_price
+            WHERE id = p_id
+            RETURNING to_jsonb (OLD) INTO v_old_row;
+             -- If no row was deleted (p_id not found), return nothing
+            IF NOT FOUND THEN
+                RETURN;
+            END IF;      
+        RETURN QUERY SELECT 
+            'DELETE'::TEXT AS operation_type,
+            v_old_row AS old_value,
+            NULL::JSONB AS new_value;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid operation type: %', p_operation_type;
+    END IF;
+END;
+$$ LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE VIEW api.vw_product_price AS
+    SELECT id, product_id, price, currency, geography, validity, current FROM product_price;
 
 /*
     Miscellaneous API elements
@@ -244,7 +462,7 @@ CREATE OR REPLACE VIEW api.vw_product_without_current_price AS
 
 
 CREATE OR REPLACE VIEW api.vw_product AS
-    SELECT id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename FROM product_brand;    
+    SELECT id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename FROM product;    
 
 CREATE OR REPLACE VIEW api.vw_product_price AS
     SELECT id, product_id, price, currency, geography, validity, current FROM product_price;      
