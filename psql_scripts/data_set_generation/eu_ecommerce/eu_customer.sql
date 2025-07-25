@@ -42,7 +42,7 @@ $$ LANGUAGE plpgsql;
 
 TRUNCATE eu_customer.customer CASCADE;
 
-INSERT INTO eu_customer.customer (first_name, last_name, phone_numbers, street_address, postal_code, city, country)
+INSERT INTO eu_customer.customer (id, first_name, last_name, phone_numbers, street_address, postal_code, city, country)
 WITH country_data AS (
     SELECT 
         country,
@@ -67,6 +67,7 @@ WITH country_data AS (
     ) AS t(country, first_names, last_names, cities)
 )
 SELECT 
+    UUIDV7(),
     first_names[1 + floor(random() * array_length(first_names, 1))]::text,
     last_names[1 + floor(random() * array_length(last_names, 1))]::text,
     data_generation.generate_random_phone_numbers('EU'), 

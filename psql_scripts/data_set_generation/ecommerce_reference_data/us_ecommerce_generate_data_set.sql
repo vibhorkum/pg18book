@@ -184,7 +184,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-call data_generation.generate_random_sales_transaction_data ();
+-- call data_generation.generate_random_sales_transaction_data ();
 
 
 CREATE OR REPLACE PROCEDURE data_generation.generate_tshirt_jeans_sales_transaction_data (ratio NUMERIC DEFAULT 0.25)

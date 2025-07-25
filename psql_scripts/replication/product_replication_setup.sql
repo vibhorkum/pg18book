@@ -5,26 +5,33 @@
 -- =================================================================
 
 -- Step 0: Define variables for easier maintenance
-\set publisher_db 'ecommerce_reference_data'
+\set publisher_db1 'ecommerce_reference_data'
+
+
 \set subscriber_db1 'us_ecommerce_data'
 \set subscriber_db2 'eu_ecommerce_data'
+\set subscriber_db3 'central_analytics'
 
-\set publisher_conn_string 'host=localhost port=5432 dbname=ecommerce_reference_data'
+
+\set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data'
 
 \set sub_slot_1 'us_product_reference_data_sub'
 \set sub_slot_2 'eu_product_reference_data_sub'
+\set sub_slot_3 'central_analytics_product_reference_sub'
 
 \echo '*** Replication Setup Script Started ***'
 
--- =================================================================
---  Step 1: Configure the Publisher Database (:publisher_db)
--- =================================================================
-\c :publisher_db
-\echo 'Connected to publisher database ->' :publisher_db
+-- ================================================================================
+--  Step 1: Configure the Product Reference Publisher Database (:publisher_db1)
+-- ================================================================================
+\c :publisher_db1
+\echo 'Connected to publisher database ->' :publisher_db1
 
 \echo '--> Dropping old publications if they exist...'
 DROP PUBLICATION IF EXISTS us_product_reference_publication;
 DROP PUBLICATION IF EXISTS eu_product_reference_publication;
+DROP PUBLICATION IF EXISTS central_analytics_product_publication;
+
 
 -- publishing the reference data to us_ecommerce
 
@@ -37,6 +44,8 @@ CREATE PUBLICATION us_product_publication
         --- send only rows that pertain to the US and are currently active
         product_reference.product_price WHERE (geography = 'US' AND current = true);
 
+-- publishing the reference data to eu_ecommerce
+
 \echo '--> Creating the EU publication for product reference tables...'
 CREATE PUBLICATION eu_product_publication
     FOR TABLE 
@@ -46,11 +55,22 @@ CREATE PUBLICATION eu_product_publication
         --- send only rows that pertain to the US and are currently active
         product_reference.product_price WHERE (geography = 'EU' AND current = true);
 
+-- publishing the reference data to eu_ecommerce
+
+\echo '--> Creating the central analytics publication for product reference tables...'
+CREATE PUBLICATION central_analytics_product_publication
+    FOR TABLE 
+        product_reference.product_category, 
+        product_reference.product_brand, 
+        product_reference.product, 
+        --- send all rows
+        product_reference.product_price;
+
 \echo '--> Verification: Listing tables in publications...'
 SELECT pubname, schemaname, tablename FROM pg_publication_tables;
 
 -- =================================================================
---  Step 2: Configure the Subscriber Database (:subscriber_db)
+--  Step 2: Configure the Product Reference Subscriptions
 -- =================================================================
 \c :subscriber_db1
 
@@ -61,7 +81,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_1;
 
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_1
-    CONNECTION :'publisher_conn_string'
+    CONNECTION :'publisher_conn_string1'
     PUBLICATION us_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
@@ -74,17 +94,31 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_2
-    CONNECTION :'publisher_conn_string'
+    CONNECTION :'publisher_conn_string1'
     PUBLICATION eu_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
+\c :subscriber_db3
+
+\echo 'Connected to subscriber database ->' :subscriber_db3
+
+\echo '--> Dropping old subscriptions if they exist...'
+DROP SUBSCRIPTION IF EXISTS :sub_slot_3;
+
+\echo '--> Creating subscription for core reference data...'
+CREATE SUBSCRIPTION :sub_slot_3
+    CONNECTION :'publisher_conn_string1'
+    PUBLICATION central_analytics_product_publication
+    WITH (connect = false); -- connect=false is essential for same-server setup    
+
 -- =================================================================
---  Step 3: Manually Create Replication Slots on the Publisher
+--  Step 3: Create Replication Slots on the Publisher
 -- =================================================================
-\c :publisher_db
+\c :publisher_db1
 
 SET vars.slot_1 TO :'sub_slot_1';
 SET vars.slot_2 TO :'sub_slot_2';
+SET vars.slot_3 TO :'sub_slot_3';
 
 \echo 'Connected back to publisher to manage replication slots...'
 
@@ -113,9 +147,22 @@ BEGIN
         RAISE NOTICE '--> Replication slot % already exists. Skipping creation.', sub_slot_2;
     END IF;
 END$$;
--- =================================================================
---  Step 4: Enable and Refresh Subscriptions on the Subscriber
--- =================================================================
+
+-- Conditionally create the third slot to avoid errors on re-runs
+DO $$
+DECLARE
+  sub_slot_3 TEXT := current_setting('vars.slot_3');
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = sub_slot_3) THEN
+        RAISE NOTICE '--> Creating replication slot: %', sub_slot_3;
+        PERFORM pg_create_logical_replication_slot(sub_slot_3, 'pgoutput');
+    ELSE
+        RAISE NOTICE '--> Replication slot % already exists. Skipping creation.', sub_slot_3;
+    END IF;
+END$$;
+-- ================================================================================
+--  Step 4: Enable and Refresh Product Reference Subscriptions on the Subscriber
+-- ================================================================================
 \c :subscriber_db1
 \echo 'Connected back to subscriber to enable and refresh data on ' :subscriber_db1
 
@@ -130,5 +177,14 @@ ALTER SUBSCRIPTION :sub_slot_1 REFRESH PUBLICATION;
 \echo '--> Enabling and refreshing subscription:' :'sub_slot_2'
 ALTER SUBSCRIPTION :sub_slot_2 ENABLE;
 ALTER SUBSCRIPTION :sub_slot_2 REFRESH PUBLICATION;
+
+\c :subscriber_db3
+\echo 'Connected back to subscriber to enable and refresh data on ' :subscriber_db3
+
+\echo '--> Enabling and refreshing subscription:' :'sub_slot_3'
+ALTER SUBSCRIPTION :sub_slot_3 ENABLE;
+ALTER SUBSCRIPTION :sub_slot_3 REFRESH PUBLICATION;
+
+
 
 \echo '*** Script Finished Successfully ***'

@@ -25,8 +25,15 @@
 \echo '.... executing database_definitions/eu_ecommerce_data.sql'
 \i database_definitions/eu_ecommerce_data.sql
 
-\echo '.... executing replication/replication_setup.sql'
-\i replication/replication_setup.sql
+\echo '.... executing database_definitions/central_analytics.sql'
+\i database_definitions/central_analytics.sql
+
+\echo '.... executing replication/product_replication_setup.sql'
+\i replication/product_replication_setup.sql
+
+\echo '.... executing replication/customer_sales_replication_setup.sql'
+\i replication/customer_sales_replication_setup.sql
+
 
 \echo '.... loading product reference data'
 
@@ -34,7 +41,12 @@
 
 \i data_sets/ecommerce_reference_data/product_reference/product_brand.sql
 \i data_sets/ecommerce_reference_data/product_reference/product_category.sql
+\echo '.... wait for reference data replication to complete'
+SELECT pg_sleep(5);
 \i data_sets/ecommerce_reference_data/product_reference/product.sql
+
+\echo '.... wait for reference data replication to complete'
+SELECT pg_sleep(5);
 \i data_sets/ecommerce_reference_data/product_reference/product_price.sql
 
 \echo '.... wait for reference data replication to complete'

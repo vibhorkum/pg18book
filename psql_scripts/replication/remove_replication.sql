@@ -5,12 +5,17 @@
 -- =================================================================
 
 -- Step 0: Define variables for easier maintenance
-\set publisher_db 'ecommerce_reference_data'
+\set publisher_db1 'ecommerce_reference_data'
+\set publisher_db2 'us_ecommerce_data'
+\set publisher_db3 'eu_ecommerce_data'
+
 \set subscriber_db1 'us_ecommerce_data'
 \set subscriber_db2 'eu_ecommerce_data'
+\set subscriber_db3 'central_analytics'
 
 \set sub_slot_1 'us_product_reference_data_sub'
 \set sub_slot_2 'eu_product_reference_data_sub'
+\set sub_slot_3 'central_analytics_product_reference_sub'
 
 SET vars.sub_slot_1 TO :'sub_slot_1';
 
@@ -50,7 +55,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 \echo '--> Subscriptions dropped.'
 
 -- =================================================================
---  Step 2: Drop Replication Slots on the Publisher
+--  Step 2: Drop Replication Slots on the Publisher ecommerce reference
 -- =================================================================
 \c :publisher_db
 SET vars.sub_slot_1 TO :'sub_slot_1';
@@ -83,6 +88,21 @@ BEGIN
         RAISE NOTICE  '--> Dropping replication slot: %', sub_slot_2;
         -- Note: pg_drop_replication_slot is a function, not standard DDL.
         PERFORM pg_drop_replication_slot(sub_slot_2);
+    ELSE
+        RAISE NOTICE '--> Replication slot : % does not exist. Skipping.', sub_slot_2;
+    END IF;
+END$$;
+
+-- Drop the replication slot for the third subscription, if it exists.
+-- A DO block is used to conditionally call the drop function.
+DO $$
+DECLARE
+        sub_slot_3 TEXT := current_setting('vars.sub_slot_3');
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = sub_slot_3) THEN
+        RAISE NOTICE  '--> Dropping replication slot: %', sub_slot_3;
+        -- Note: pg_drop_replication_slot is a function, not standard DDL.
+        PERFORM pg_drop_replication_slot(sub_slot_3);
     ELSE
         RAISE NOTICE '--> Replication slot : % does not exist. Skipping.', sub_slot_2;
     END IF;

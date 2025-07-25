@@ -1,0 +1,13 @@
+services:
+
+  db:
+    image: postgres:18beta1
+    container_name: pg18book
+    command: "-c logging_collector=on -c max_logical_replication_workers=10 -c log_statement=ddl -c wal_level=logical"
+    ports:
+      - "5432:5432"
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres

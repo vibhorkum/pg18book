@@ -14,6 +14,8 @@ Approach:
     - Create 2 orders for 1-2 (random) T-shirts and 1 blue jeans    
 */
 
+\c eu_ecommerce_data
+
 CREATE SCHEMA IF NOT EXISTS data_generation;
 
 CREATE OR REPLACE PROCEDURE data_generation.generate_random_sales_transaction_data ()
@@ -75,7 +77,7 @@ SELECT COUNT(*) INTO customer_count FROM customer;
             --- select random date within last 18 months
             random_date := current_date - TRUNC(RANDOM() * 150)::INTEGER;
             INSERT INTO sales_transaction (id, transaction_date, customer_id)
-                VALUES (gen_random_uuid(), random_date, customer_record.id)
+                VALUES (UUIDV7(), random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
             --- select product  and price for t-shirts
             SELECT 
@@ -85,7 +87,7 @@ SELECT COUNT(*) INTO customer_count FROM customer;
                 ORDER BY RANDOM() LIMIT 1;
             IF p_id <> NULL THEN    
                 INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, price_at_sale, qty)
-                    VALUES (gen_random_uuid(), sales_transaction_id, pv_id, pv_price, 1);
+                    VALUES (UUIDV7(), sales_transaction_id, pv_id, pv_price, 1);
             END IF;    
             --- select product variant and price for jeans
             SELECT 
