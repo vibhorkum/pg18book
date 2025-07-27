@@ -9,19 +9,25 @@ This repository contains a set of SQL scripts to demonstrate a reference archite
 *   **Exclusion Constraints**: Using `GIST` to prevent overlapping price validity periods.
 *   **Stored Procedures**: Efficient data maintenance (`update_current_price_flags`) and sample data generation (`create_sales_transactions`).
 *   **`psql` Scripting**: Use of `psql` meta-commands and variables for automated setup and teardown.
+*   **🤖 AI-Powered Recommendations**: Vector similarity search, collaborative filtering, and hybrid recommendation system using `pgvector`.
 
 ## File Structure
 *   `reference_data.sql`: Master script to create the `ecommerce_reference_data` (publisher) database, schema, and sample data.
 *   `us_ecommerce_data.sql`: Master script to create the `us_ecommerce_data` (subscriber) database and its local schema.
+*   `enhanced_sample_data.sql`: **NEW** - Extended product catalog with diverse brands, categories, and detailed product information.
+*   `ai_recommendations.sql`: **NEW** - AI-powered recommendation system using PostgreSQL's `pgvector` extension.
+*   `ai_examples.sql`: **NEW** - Comprehensive examples demonstrating AI recommendation features.
 *   `replication_setup.sql`: Script to configure logical replication between the two databases.
 *   `remove_replication.sql`: Script to tear down the replication configuration.
 *   `cleanup_databases.sql`: Script to drop both databases and clean up the environment.
 *   `pgAdmin4_sqls/`: Contains versions of the scripts adapted for use with the pgAdmin 4 query tool, which does not support certain `psql` meta-commands.
+*   `AI_RECOMMENDATIONS.md`: **NEW** - Detailed documentation for the AI recommendation system.
 
 ## Prerequisites
 *   PostgreSQL server installed.
 *   Superuser access to the PostgreSQL instance.
 *   `psql` command-line client.
+*   **For AI features**: `pgvector` extension (`sudo apt install postgresql-16-pgvector` on Ubuntu/Debian).
 
 ---
 
@@ -69,6 +75,44 @@ To use them:
 2.  Uncomment the `INSERT` statements and the `create_sales_transactions` procedure in `us_ecommerce_data.sql`.
 3.  Execute the uncommented code in your `psql` session.
 4.  You can then generate sample sales data by running: `CALL create_sales_transactions(10);`
+
+### 5. (Optional) Set Up AI-Powered Recommendations
+
+To enable AI-powered product recommendations:
+
+```bash
+# Install pgvector extension (Ubuntu/Debian)
+sudo apt install postgresql-16-pgvector
+
+# Add enhanced sample data with diverse product catalog
+psql -U your_superuser -d ecommerce_reference_data -f enhanced_sample_data.sql
+
+# Set up AI recommendation system on US database
+psql -U your_superuser -d us_ecommerce_data -f ai_recommendations.sql
+
+# Run comprehensive AI examples and demonstrations
+psql -U your_superuser -d us_ecommerce_data -f ai_examples.sql
+```
+
+**AI Features Available:**
+- **Content-based similarity**: Find products similar to a given product using vector embeddings
+- **Text-based search**: Search products using natural language queries ("athletic shirt", "formal business attire")
+- **Collaborative filtering**: Recommend products based on similar customer purchase patterns
+- **Hybrid recommendations**: Combine multiple recommendation approaches for better results
+
+**Example AI Queries:**
+```sql
+-- Find products similar to product ID 1
+SELECT * FROM find_similar_products(1, 0.3, 10);
+
+-- Search for products using natural language
+SELECT * FROM search_similar_products_by_text('running shoes', 0.2, 5);
+
+-- Get personalized recommendations for customer ID 1
+SELECT * FROM get_hybrid_recommendations(1, NULL, 10);
+```
+
+For detailed AI documentation, see [`AI_RECOMMENDATIONS.md`](AI_RECOMMENDATIONS.md).
 
 ### Cleanup
 To remove the setup, run the scripts in the following order:
