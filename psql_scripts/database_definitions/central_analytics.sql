@@ -227,3 +227,35 @@ CREATE TABLE merged_sales.sales_transaction_line (
 
 ALTER TABLE merged_sales.sales_transaction_line ATTACH PARTITION east_sales.sales_transaction_line FOR VALUES IN ('EAST');
 ALTER TABLE merged_sales.sales_transaction_line ATTACH PARTITION west_sales.sales_transaction_line FOR VALUES IN ('WEST');
+
+
+/******************************************************************************
+    Logic to delete PII from the customer data after replication to 
+    to central analytics.
+    PII: first_name, last_name, street_address, phone_numbers
+    PII is deleted upon INSERT and UPDATE
+******************************************************************************/
+
+CREATE OR REPLACE FUNCTION api.sf_delete_PII_from_customer () 
+RETURNS TRIGGER AS
+$$
+  BEGIN
+    NEW.first_name = 'masked';
+    NEW.last_name = 'masked';
+    RETURN NEW;
+  END;
+$$ LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE TRIGGER tr_delete_PII_from_east_customer 
+  BEFORE INSERT OR UPDATE
+  ON east_customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
+
+ALTER TABLE east_customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_east_customer;
+
+CREATE OR REPLACE TRIGGER tr_delete_PII_from_west_customer 
+  BEFORE INSERT OR UPDATE
+  ON west_customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
+
+ALTER TABLE west_customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_west_customer;
+
+
