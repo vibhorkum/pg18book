@@ -1,23 +1,21 @@
 -- =================================================================
---  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION
+--  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION FOR PRODUCT REFERENCE
 --  This script tears down the publications, subscriptions,
 --  and replication slots created by the setup script.
 -- =================================================================
 
 -- Step 0: Define variables for easier maintenance
 \set publisher_db1 'ecommerce_reference_data'
-\set publisher_db2 'us_ecommerce_data'
-\set publisher_db3 'eu_ecommerce_data'
 
-\set subscriber_db1 'us_ecommerce_data'
-\set subscriber_db2 'eu_ecommerce_data'
+\set subscriber_db1 'west_ecommerce_data'
+\set subscriber_db2 'east_ecommerce_data'
 \set subscriber_db3 'central_analytics'
 
-\set sub_slot_1 'us_product_reference_data_sub'
-\set sub_slot_2 'eu_product_reference_data_sub'
+\set sub_slot_1 'west_product_reference_data_sub'
+\set sub_slot_2 'east_product_reference_data_sub'
 \set sub_slot_3 'central_analytics_product_reference_sub'
 
-SET vars.sub_slot_1 TO :'sub_slot_1';
+-- SET vars.sub_slot_1 TO :'sub_slot_1';
 
 \echo '*** Rollback Script Started ***'
 
@@ -52,16 +50,32 @@ ALTER SUBSCRIPTION :sub_slot_2 SET (slot_name = NONE);
 \echo '--> Dropping subscription' :'sub_slot_1' 'if it exists...'
 DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 
+\c :subscriber_db3
+\echo 'Connected to subscriber database ->' :subscriber_db3
+
+
+\echo '--> Disabling subscription' :'sub_slot_3' 'if it exists...'
+-- It's good practice to disable before dropping.
+-- And remove slot dependencies
+-- The IF EXISTS on the DROP command handles cases where it's already gone.
+ALTER SUBSCRIPTION :sub_slot_3 DISABLE;
+ALTER SUBSCRIPTION :sub_slot_3 SET (slot_name = NONE);
+
+\echo '--> Dropping subscription' :'sub_slot_3' 'if it exists...'
+DROP SUBSCRIPTION IF EXISTS :sub_slot_3;
+
 \echo '--> Subscriptions dropped.'
 
 -- =================================================================
 --  Step 2: Drop Replication Slots on the Publisher ecommerce reference
 -- =================================================================
-\c :publisher_db
+\c :publisher_db1
 SET vars.sub_slot_1 TO :'sub_slot_1';
 SET vars.sub_slot_2 TO :'sub_slot_2';
+SET vars.sub_slot_3 TO :'sub_slot_3';
 
-\echo 'Connected to publisher database ->' :publisher_db
+
+\echo 'Connected to publisher database ->' :publisher_db1
 
 -- Drop the replication slot for the first subscription, if it exists.
 -- A DO block is used to conditionally call the drop function.
@@ -116,11 +130,14 @@ END$$;
 -- =================================================================
 -- This can be done in the same connection to the publisher.
 
-\echo '--> Dropping publication: us_product_publication'
-DROP PUBLICATION IF EXISTS us_product_reference_publication;
+\echo '--> Dropping publication: west_product_publication'
+DROP PUBLICATION IF EXISTS west_product_reference_publication;
 
-\echo '--> Dropping publication: eu_product_publication'
-DROP PUBLICATION IF EXISTS eu_product_reference_publication;
+\echo '--> Dropping publication: east_product_publication'
+DROP PUBLICATION IF EXISTS east_product_reference_publication;
+
+\echo '--> Dropping publication: central_product_publication'
+DROP PUBLICATION IF EXISTS central_analytics_product_publication;
 
 \echo '--> Publications dropped.'
 

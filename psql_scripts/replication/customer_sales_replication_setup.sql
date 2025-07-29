@@ -1,62 +1,54 @@
 /*
-Create the replication of the customers and sales data from us and eu ecommerce
+Create the replication of the customers and sales data from east and west ecommerce
 site to central analytics
 
 */
 
 -- ================================================================================
---  Step 1: Create the customer and sales publication on eu/us_ecommercedata
+--  Step 1: Create the customer and sales publication on east/west_ecommercedata
 -- ================================================================================
 
-\set publisher_db2 'us_ecommerce_data'
-\set publisher_db3 'eu_ecommerce_data'
+\set publisher_db2 'west_ecommerce_data'
+\set publisher_db3 'east_ecommerce_data'
 
 \set subscriber_db4 'central_analytics'
 
-\set publisher_conn_string2 'host=localhost port=5432 dbname=us_ecommerce_data'
-\set publisher_conn_string3 'host=localhost port=5432 dbname=eu_ecommerce_data'
+\set publisher_conn_string2 'host=localhost port=5432 dbname=west_ecommerce_data'
+\set publisher_conn_string3 'host=localhost port=5432 dbname=east_ecommerce_data'
 
-\set sub_slot_4 'us_customer_sales_data_sub'
-\set sub_slot_5 'eu_customer_sales_data_sub'
+\set sub_slot_4 'west_customer_sales_data_sub'
+\set sub_slot_5 'east_customer_sales_data_sub'
 
 \c :publisher_db2
 \echo 'Connected to publisher database ->' :publisher_db2
 
 \echo '--> Dropping old publications if they exist...'
-DROP PUBLICATION IF EXISTS us_customer_sales_pub;
+DROP PUBLICATION IF EXISTS west_customer_sales_publication;
 
--- publishing the us sales and customer data to central analytics
+-- publishing the east/west sales and customer data to central analytics
 
-\echo '--> Creating the US publication for customers amd sales tables...'
-CREATE PUBLICATION us_customer_sales_pub
+\echo '--> Creating the west publication for customers amd sales tables...'
+CREATE PUBLICATION west_customer_sales_publication
     FOR TABLE 
-        us_customer.customer, 
-        us_sales.sales_transaction, 
-        us_sales.sales_transaction_line;
-
-/*
-
-CREATE PUBLICATION us_customer_sales_pub
-    FOR TABLE 
-        us_customer.customer;
-
-*/
+        west_customer.customer, 
+        west_sales.sales_transaction, 
+        west_sales.sales_transaction_line;
 
 
 \c :publisher_db3
-\echo 'Connected to publisher database ->' :publisher_db2
+\echo 'Connected to publisher database ->' :publisher_db3
 
 \echo '--> Dropping old publications if they exist...'
-DROP PUBLICATION IF EXISTS eu_customer_sales_pub;
+DROP PUBLICATION IF EXISTS east_customer_sales_publication;
 
--- publishing the eu sales and customer data to central analytics
+-- publishing the east sales and customer data to central analytics
 
-\echo '--> Creating the eu publication for customers amd sales tables...'
-CREATE PUBLICATION eu_customer_sales_pub
+\echo '--> Creating the east publication for customers amd sales tables...'
+CREATE PUBLICATION east_customer_sales_publication
     FOR TABLE 
-        eu_customer.customer, 
-        eu_sales.sales_transaction, 
-        eu_sales.sales_transaction_line;     
+        east_customer.customer, 
+        east_sales.sales_transaction, 
+        east_sales.sales_transaction_line;     
 
 -- ================================================================================
 --  Step 2: Create the customer and sales subscriptions on central analytics
@@ -72,16 +64,9 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_4;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_4
     CONNECTION :'publisher_conn_string2'
-    PUBLICATION us_customer_sales_pub
+    PUBLICATION west_customer_sales_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
-/*
-CREATE SUBSCRIPTION us_customer_sales_data_sub
-    CONNECTION 'host=localhost port=5432 dbname=us_ecommerce_data'
-    PUBLICATION us_customer_sales_pub
-    WITH (connect = false); -- connect=false is essential for same-server setup
-
-*/
 
 \echo '--> Dropping old subscriptions if they exist...'
 DROP SUBSCRIPTION IF EXISTS :sub_slot_5;
@@ -89,12 +74,12 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_5;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_5
     CONNECTION :'publisher_conn_string3'
-    PUBLICATION eu_customer_sales_pub
+    PUBLICATION east_customer_sales_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
 
 -- =================================================================
---  Step 3: Create Replication Slots on the us/eu_ecommerce_data
+--  Step 3: Create Replication Slots on the east/west_ecommerce_data
 -- =================================================================
 \c :publisher_db2
 
@@ -115,10 +100,7 @@ BEGIN
     END IF;
 END$$;
 
-/*
-select * from pg_drop_replication_slot ('us_customer_sales_data_sub');
-select * FROM pg_create_logical_replication_slot('us_customer_sales_data_sub', 'pgoutput');
-*/
+
 \c :publisher_db3
 SET vars.slot_5 TO :'sub_slot_5';
 
@@ -150,8 +132,3 @@ ALTER SUBSCRIPTION :sub_slot_4 REFRESH PUBLICATION;
 \echo '--> Enabling and refreshing subscription:' :'sub_slot_5'
 ALTER SUBSCRIPTION :sub_slot_5 ENABLE;
 ALTER SUBSCRIPTION :sub_slot_5 REFRESH PUBLICATION;
-
-/*
-ALTER SUBSCRIPTION us_customer_sales_data_sub ENABLE;
-ALTER SUBSCRIPTION us_customer_sales_data_sub REFRESH PUBLICATION;
-*/

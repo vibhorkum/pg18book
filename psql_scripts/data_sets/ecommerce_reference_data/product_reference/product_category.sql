@@ -1,4 +1,3 @@
-\c ecommerce_reference_data
 
 \echo '--> Inserting data for categories, brands, and products ...'
 -- Using OVERRIDING SYSTEM VALUE to control the IDs for predictable testing.

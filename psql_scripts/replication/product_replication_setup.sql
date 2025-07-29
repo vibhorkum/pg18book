@@ -1,22 +1,22 @@
 -- =================================================================
 --  PSQL SCRIPT FOR SETTING UP LOGICAL REPLICATION
 --  Publisher: ecommerce_reference_data
---  Subscriber: us_ecommerce_data
+--  Subscriber: west_ecommerce_data
 -- =================================================================
 
 -- Step 0: Define variables for easier maintenance
 \set publisher_db1 'ecommerce_reference_data'
 
 
-\set subscriber_db1 'us_ecommerce_data'
-\set subscriber_db2 'eu_ecommerce_data'
+\set subscriber_db1 'west_ecommerce_data'
+\set subscriber_db2 'east_ecommerce_data'
 \set subscriber_db3 'central_analytics'
 
 
 \set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data'
 
-\set sub_slot_1 'us_product_reference_data_sub'
-\set sub_slot_2 'eu_product_reference_data_sub'
+\set sub_slot_1 'west_product_reference_data_sub'
+\set sub_slot_2 'east_product_reference_data_sub'
 \set sub_slot_3 'central_analytics_product_reference_sub'
 
 \echo '*** Replication Setup Script Started ***'
@@ -28,34 +28,34 @@
 \echo 'Connected to publisher database ->' :publisher_db1
 
 \echo '--> Dropping old publications if they exist...'
-DROP PUBLICATION IF EXISTS us_product_reference_publication;
-DROP PUBLICATION IF EXISTS eu_product_reference_publication;
+DROP PUBLICATION IF EXISTS west_product_reference_publication;
+DROP PUBLICATION IF EXISTS east_product_reference_publication;
 DROP PUBLICATION IF EXISTS central_analytics_product_publication;
 
 
--- publishing the reference data to us_ecommerce
+-- publishing the reference data to west_ecommerce
 
-\echo '--> Creating the US publication for product reference tables...'
-CREATE PUBLICATION us_product_publication
+\echo '--> Creating the west publication for product reference tables...'
+CREATE PUBLICATION west_product_publication
     FOR TABLE 
         product_reference.product_category, 
         product_reference.product_brand, 
         product_reference.product, 
-        --- send only rows that pertain to the US and are currently active
-        product_reference.product_price WHERE (geography = 'US' AND current = true);
+        --- send only rows that pertain are currently active
+        product_reference.product_price WHERE (current = true);
 
--- publishing the reference data to eu_ecommerce
+-- publishing the reference data to east_ecommerce
 
-\echo '--> Creating the EU publication for product reference tables...'
-CREATE PUBLICATION eu_product_publication
+\echo '--> Creating the east publication for product reference tables...'
+CREATE PUBLICATION east_product_publication
     FOR TABLE 
         product_reference.product_category, 
         product_reference.product_brand, 
         product_reference.product, 
-        --- send only rows that pertain to the US and are currently active
-        product_reference.product_price WHERE (geography = 'EU' AND current = true);
+        --- send only rows that are currently active
+        product_reference.product_price WHERE (current = true);
 
--- publishing the reference data to eu_ecommerce
+-- publishing the reference data to central analytics
 
 \echo '--> Creating the central analytics publication for product reference tables...'
 CREATE PUBLICATION central_analytics_product_publication
@@ -82,7 +82,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_1;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_1
     CONNECTION :'publisher_conn_string1'
-    PUBLICATION us_product_publication
+    PUBLICATION west_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
 \c :subscriber_db2
@@ -95,7 +95,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_2
     CONNECTION :'publisher_conn_string1'
-    PUBLICATION eu_product_publication
+    PUBLICATION east_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
 \c :subscriber_db3
