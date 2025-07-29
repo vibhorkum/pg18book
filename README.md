@@ -27,7 +27,7 @@ This repository contains a set of SQL scripts to demonstrate a reference archite
 *   PostgreSQL server installed.
 *   Superuser access to the PostgreSQL instance.
 *   `psql` command-line client.
-*   **For AI features**: `pgvector` extension (`sudo dnf install postgresql-18-pgvector -y` on Rocky Linux.
+*   **For AI features**: `pgvector` extension, follow the steps given in the following link: https://github.com/pgvector/pgvector.
 
 ---
 
@@ -82,7 +82,7 @@ To enable AI-powered product recommendations:
 
 ```bash
 # Install pgvector extension (Rocky Linux)
-sudo dnf install postgresql-18-pgvector -y
+Install steps (https://github.com/pgvector/pgvector)
 
 # Add enhanced sample data with diverse product catalog
 psql -U your_superuser -d ecommerce_reference_data -f enhanced_sample_data.sql
