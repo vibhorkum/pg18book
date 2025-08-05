@@ -49,6 +49,9 @@ END
 $$;
 \echo 'Server config ok'
 
+\echo 'Defining the DBA users'
+\i database_definitions/define_roles.sql
+
 \echo 'Creating databases ...'
 \i database_definitions/create_databases.sql
 

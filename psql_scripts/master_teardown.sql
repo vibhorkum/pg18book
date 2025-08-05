@@ -13,3 +13,6 @@
 \echo '.... running cleanup_databases.sql'
 \i cleanup_databases.sql
 
+\echo '.... running remove_roles.sql'
+\i database_definitions/remove_roles.sql
+

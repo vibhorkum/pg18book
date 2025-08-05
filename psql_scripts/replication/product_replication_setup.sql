@@ -28,15 +28,14 @@
 \echo 'Connected to publisher database ->' :publisher_db1
 
 \echo '--> Dropping old publications if they exist...'
-DROP PUBLICATION IF EXISTS west_product_reference_publication;
-DROP PUBLICATION IF EXISTS east_product_reference_publication;
+DROP PUBLICATION IF EXISTS ecommerce_product_publication;
 DROP PUBLICATION IF EXISTS central_analytics_product_publication;
 
 
 -- publishing the reference data to west_ecommerce
 
-\echo '--> Creating the west publication for product reference tables...'
-CREATE PUBLICATION west_product_publication
+\echo '--> Creating the ecommerce publication for product reference tables...'
+CREATE PUBLICATION ecommerce_product_publication
     FOR TABLE 
         product_reference.product_category, 
         product_reference.product_brand, 
@@ -44,16 +43,6 @@ CREATE PUBLICATION west_product_publication
         --- send only rows that pertain are currently active
         product_reference.product_price WHERE (current = true);
 
--- publishing the reference data to east_ecommerce
-
-\echo '--> Creating the east publication for product reference tables...'
-CREATE PUBLICATION east_product_publication
-    FOR TABLE 
-        product_reference.product_category, 
-        product_reference.product_brand, 
-        product_reference.product, 
-        --- send only rows that are currently active
-        product_reference.product_price WHERE (current = true);
 
 -- publishing the reference data to central analytics
 
@@ -82,7 +71,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_1;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_1
     CONNECTION :'publisher_conn_string1'
-    PUBLICATION west_product_publication
+    PUBLICATION ecommerce_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
 \c :subscriber_db2
@@ -95,7 +84,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 \echo '--> Creating subscription for core reference data...'
 CREATE SUBSCRIPTION :sub_slot_2
     CONNECTION :'publisher_conn_string1'
-    PUBLICATION east_product_publication
+    PUBLICATION ecommerce_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup
 
 \c :subscriber_db3
