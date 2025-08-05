@@ -7,25 +7,11 @@
 -- =================================================================
 
 -- =================================================================
---  SECTION 1: SYSTEM AND DATABASE PREPARATION
+--  SECTION 1: SCHEMA PREPARATION
 -- =================================================================
--- Note: These initial commands should be run by a superuser connected
--- to a maintenance database (like 'postgres').
 
 
-\echo '[DATABASE PREP] ==> Preparing to drop and recreate the database.'
--- Terminate all active connections to the target database before dropping it.
--- This is a more controlled approach than using WITH (FORCE).
-SELECT pg_terminate_backend(pid)
-FROM pg_stat_activity
-WHERE datname = 'ecommerce_reference_data' AND pid <> pg_backend_pid();
-
-DROP DATABASE IF EXISTS ecommerce_reference_data;
-
-\echo '[DATABASE PREP] ==> Creating the database...'
-CREATE DATABASE ecommerce_reference_data;
-
--- Switch connection to the newly created database.
+-- Switch connection to the database.
 \c ecommerce_reference_data
 
 \echo '--> Successfully connected to database: ecommerce_reference_data'

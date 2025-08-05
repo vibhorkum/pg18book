@@ -49,7 +49,9 @@ END
 $$;
 \echo 'Server config ok'
 
-\echo 'Defining databases ...'
+\echo 'Creating databases ...'
+\i database_definitions/create_databases.sql
+
 
 \echo '.... database_definitions/ecommerce_reference_data.sql'
 \i database_definitions/ecommerce_reference_data.sql

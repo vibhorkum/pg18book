@@ -7,23 +7,12 @@
 -- =================================================================
 
 -- =================================================================
---  SECTION 1: DATABASE PREPARATION
+--  SECTION 1: SCHEMA PREPARATION
 -- =================================================================
--- Note: Run this script while connected to a neutral DB (e.g., 'postgres').
 
-\echo '[DATABASE PREP] ==> Preparing to drop and recreate the database.'
+-- Switch connection to the database.
 
--- Terminate active connections before dropping the database for a safe teardown.
-SELECT pg_terminate_backend(pid)
-FROM pg_stat_activity
-WHERE datname = 'west_ecommerce_data' AND pid <> pg_backend_pid();
 
-DROP DATABASE IF EXISTS west_ecommerce_data;
-
-\echo '[DATABASE PREP] ==> Creating the database...'
-CREATE DATABASE west_ecommerce_data;
-
--- Switch connection to the newly created database.
 \c west_ecommerce_data
 \echo '--> Successfully connected to database: west_ecommerce_data'
 

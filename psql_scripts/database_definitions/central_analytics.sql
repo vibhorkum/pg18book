@@ -26,24 +26,11 @@
 ================================================================================
 
 ================================================================================
-  SECTION 1: DATABASE PREPARATION
+  SECTION 1: SCHEMA PREPARATION
  =================================================================
- Note: Run this script while connected to a neutral DB (e.g., 'postgres').
 */
 
-\echo '[DATABASE PREP] ==> Preparing to drop and recreate the database.'
--- Terminate all active connections to the target database before dropping it.
--- This is a more controlled approach than using WITH (FORCE).
-SELECT pg_terminate_backend(pid)
-FROM pg_stat_activity
-WHERE datname = 'central_analytics' AND pid <> pg_backend_pid();
-
-DROP DATABASE IF EXISTS central_analytics;
-
-\echo '[DATABASE PREP] ==> Creating the database...'
-CREATE DATABASE central_analytics;
-
--- Switch connection to the newly created database.
+-- Switch connection to the database.
 \c central_analytics
 
 CREATE SCHEMA api;
