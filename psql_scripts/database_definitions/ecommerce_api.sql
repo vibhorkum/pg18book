@@ -97,9 +97,9 @@ CREATE OR REPLACE VIEW api.vw_customer AS
 */
 
 
-CREATE OR REPLACE FUNCTION api.manage_product_inventory (
+CREATE OR REPLACE FUNCTION api.manage_product_variant_inventory (
     p_operation_type TEXT,
-    p_product_id INTEGER DEFAULT NULL,
+    p_product_variant_id INTEGER DEFAULT NULL,
     p_qty INTEGER DEFAULT NULL
 )
 RETURNS TABLE (
@@ -114,8 +114,8 @@ DECLARE
     v_inserted_id JSONB;
 BEGIN
     IF p_operation_type = 'INSERT' THEN
-        INSERT INTO product_inventory (product_id, qty)
-            VALUES (p_product_id, p_qty)
+        INSERT INTO product_variant_inventory (product_id, qty)
+            VALUES (p_product_variant_id, p_qty)
             RETURNING to_jsonb(NEW) INTO v_new_row;
         RETURN QUERY SELECT 
             'INSERT'::TEXT AS operation_type,
@@ -123,10 +123,10 @@ BEGIN
             v_new_row AS new_value;
 
     ELSEIF p_operation_type = 'UPDATE' THEN
-        UPDATE product_inventory 
+        UPDATE p_product_variant_id 
             SET
                 qty = p_qty
-            WHERE product_id = p_product_id
+            WHERE product_variant_id = p_product_variant_id
             RETURNING to_jsonb (OLD), to_jsonb (NEW) INTO v_old_row, v_new_row;
         -- If no row was updated (p_id not found), return nothing
         IF NOT FOUND THEN
@@ -139,8 +139,8 @@ BEGIN
             v_new_row AS new_value;
 
     ELSEIF p_operation_type = 'DELETE' THEN
-        DELETE FROM product_inventory 
-            WHERE product_id = p_product_id
+        DELETE FROM product_variant_inventory 
+            WHERE product_variant_id = p_product_variant_id
             RETURNING to_jsonb (OLD) INTO v_old_row;
              -- If no row was deleted (p_id not found), return nothing
             IF NOT FOUND THEN
@@ -157,8 +157,8 @@ BEGIN
 END;
 $$ LANGUAGE PLPGSQL;
 
-CREATE OR REPLACE VIEW api.vw_product_inventory AS
-    SELECT product_id, qty FROM product_inventory;
+CREATE OR REPLACE VIEW api.vw_product_variant_inventory AS
+    SELECT product_variant_id, qty FROM product_variant_inventory;
 
 --------------------------------------------------------------------------------
 /*
@@ -308,7 +308,7 @@ END;
 $$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE VIEW api.vw_sales_transaction_line AS
-    SELECT id, sales_transaction_id, product_id, qty, price_at_sale FROM sales_transaction_line;     
+    SELECT id, sales_transaction_id, product_variant_id, qty, price_at_sale FROM sales_transaction_line;     
 
 --- view for sales by customer
 
@@ -321,6 +321,7 @@ CREATE OR REPLACE VIEW api.sales_by_customer AS
         FROM customer c
         JOIN sales_transaction st ON st.customer_id = c.id 
         JOIN sales_transaction_line stl ON stl.sales_transaction_id = st.id 
-        JOIN product p ON stl.product_id = p.id
+        JOIN product_variant pv ON pv.id = stl.product_variant_id
+        JOIN product p ON pv.product_id = p.id;
 
 

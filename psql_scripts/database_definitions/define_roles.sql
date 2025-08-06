@@ -23,13 +23,21 @@ CREATE ROLE replication_dba WITH
     PASSWORD 'postgres';    
 
 /* 
-DROP ROLE IF EXISTS master_dba1;
+\c postgres postgres
 
+DROP ROLE IF EXISTS master_dba;
+CREATE ROLE master_dba WITH
+    CREATEDB
+    CREATEROLE
+    INHERIT;
+
+DROP ROLE IF EXISTS master_dba1;
 CREATE ROLE master_dba1 WITH
     LOGIN
     PASSWORD 'postgres'
-    INHERIT=TRUE
     IN ROLE master_dba;
 
-GRANT master_dba to master_dba1 WITH INHERIT TRUE;
+\c postgres master_dba1
+
+CREATE DATABASE testdb1;
 */

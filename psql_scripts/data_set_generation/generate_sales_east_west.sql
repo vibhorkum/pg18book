@@ -1,8 +1,10 @@
 /* 
 
 
-this generate the sales transactions with a skew that shows (a) that paolos tend to be bought with sports coats and suit coats
+this generate the sales transactions with a skew that shows (a) that polos tend to be bought with sports coats and suit coats
 and (b) blue jeans and T-shirts are bought together
+
+Run it seperately against east and west to create both data sets
 
 */
 
@@ -10,7 +12,7 @@ and (b) blue jeans and T-shirts are bought together
 /*
 Generate the sales transaction data
 Approach:
-1) Iterate through the customers
+1) Iterate through 75% of the customers
     - Create a random set of sales transactions (between 1 and 10) spread over three years, using random products
 
 2) Pick 25% of the customers at random
@@ -31,8 +33,8 @@ DECLARE
     random_date DATE;
     sales_transaction_id TEXT;
     sales_transaction_lines INTEGER;
-    p_id INTEGER;
-    p_price NUMERIC;
+    p_product_variant_id INTEGER;
+    p_product_variant_price NUMERIC;
 BEGIN
     SELECT COUNT(*) INTO customer_count FROM customer;
     --- create random orders for 75% of customers, spread over the last 18 months
@@ -48,13 +50,13 @@ BEGIN
             FOR i IN 1.. sales_transaction_lines LOOP
                 --- select a random product variant with its price
                 SELECT 
-                    p.id, pp.price INTO p_id, p_price
-                    FROM product p, product_price pp
-                    WHERE p.id = pp.product_id
+                    pv.id, pvp.price INTO p_product_variant_id, p_product_variant_price
+                    FROM product_variant pv, product_variant_price pvp
+                    WHERE pv.id = pvp.product_variant_id
                     ORDER BY RANDOM() LIMIT 1;
                 --- create a sales transaction line    
-                INSERT INTO sales_transaction_line (sales_transaction_id, product_id, price_at_sale, qty)
-                    VALUES (sales_transaction_id, p_id, p_price, 1);
+                INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
+                    VALUES (sales_transaction_id, p_product_variant_id, p_product_variant_price, 1);
             END LOOP;
         END LOOP;
 END;
@@ -71,8 +73,8 @@ DECLARE
     customer_count INTEGER;
     random_date DATE;
     sales_transaction_id TEXT;
-    p_id INTEGER;
-    p_price NUMERIC;
+    p_product_variant_id INTEGER;
+    p_product_variant_price NUMERIC;
 BEGIN
 SELECT COUNT(*) INTO customer_count FROM customer;
     --- create t-shirt and jeans orders for subset of customers, spread over the last 18 months
@@ -85,26 +87,25 @@ SELECT COUNT(*) INTO customer_count FROM customer;
                 RETURNING id INTO sales_transaction_id;
             --- select product  and price for t-shirts
             SELECT 
-                p.id, pp.price INTO p_id, p_price
-                FROM product p, product_price pp
-                WHERE p.id = pp.product_id AND p.label ilike '%t-shirt%'
+                pv.id, pvp.price INTO p_product_variant_id, p_product_variant_price
+                FROM product p, product_variant pv, product_variant_price pvp
+                WHERE p.id = pv.product_id 
+                    AND pv.id = pvp.product_variant_id
+                    AND p.label ilike '%t-shirt%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF p_id <> NULL THEN    
                 INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
-                    VALUES (sales_transaction_id, pv_id, pv_price, 1);
-            END IF;    
+                    VALUES (sales_transaction_id, p_product_variant_id, p_product_variant_price, 1);
             --- select product variant and price for jeans
             SELECT 
-                p.id, pp.price INTO p_id, p_price
-                FROM product p, product_price pp
-                WHERE p.id = pp.product_id AND p.label ilike '%jeans%'
-                ORDER BY RANDOM() LIMIT 1;
-            IF p_id <> NULL THEN    
-                INSERT INTO sales_transaction_line (sales_transaction_id, product_id, price_at_sale, qty)
-                    VALUES (sales_transaction_id, p_id, p_price, 1);
-            END IF;        
+                pv.id, pvp.price INTO p_product_variant_id, p_product_variant_price
+                FROM product p, product_variant pv, product_variant_price pvp
+                WHERE p.id = pv.product_id 
+                    AND pv.id = pvp.product_variant_id
+                    AND p.label ilike '%jeans%'
+                ORDER BY RANDOM() LIMIT 1;    
+                INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
+                    VALUES (sales_transaction_id, p_product_variant_id, p_product_variant_price, 1);      
         END LOOP;
-
 END;
 $$ LANGUAGE plpgsql;
 
@@ -116,8 +117,8 @@ DECLARE
     customer_count INTEGER;
     random_date DATE;
     sales_transaction_id TEXT;
-    p_id INTEGER;
-    p_price NUMERIC;
+    p_product_variant_id INTEGER;
+    p_product_variant_price NUMERIC;
 BEGIN
 SELECT COUNT(*) INTO customer_count FROM customer;
     --- create polo and sports coat orders for subset of customers, spread over the last 18 months
@@ -128,26 +129,26 @@ SELECT COUNT(*) INTO customer_count FROM customer;
             INSERT INTO sales_transaction (transaction_date, customer_id)
                 VALUES (random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
-            --- select product variant and price for polos
+            --- select product  and price for polo
             SELECT 
-                p.id, pp.price INTO p_id, p_price
-                FROM product p, product_price pp
-                WHERE p.id = pp.product_id AND p.label ilike '%polo%'
+                pv.id, pvp.price INTO p_product_variant_id, p_product_variant_price
+                FROM product p, product_variant pv, product_variant_price pvp
+                WHERE p.id = pv.product_id 
+                    AND pv.id = pvp.product_variant_id
+                    AND p.label ilike '%polo%'
                 ORDER BY RANDOM() LIMIT 1;
-            IF p_id <> NULL THEN    
-                INSERT INTO sales_transaction_line (sales_transaction_id, product_id, price_at_sale, qty)
-                     VALUES (sales_transaction_id, pv_id, pv_price, 1);
-            END IF;
-            --- select product variant and price for sports coat
-                        SELECT 
-                p.id, pp.price INTO p_id, p_price
-                FROM product p, product_price pp
-                WHERE p.id = pp.product_id AND p.label ilike '%sports coat%'
-                ORDER BY RANDOM() LIMIT 1;
-            IF p_id <> NULL THEN     
-                INSERT INTO sales_transaction_line (sales_transaction_id, product_id, price_at_sale, qty)
-                    VALUES (sales_transaction_id, p_id, p_price, 1);
-            END IF;        
+                INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
+                    VALUES (sales_transaction_id, p_product_variant_id, p_product_variant_price, 1);
+            --- select product variant and price for jeans
+            SELECT 
+                pv.id, pvp.price INTO p_product_variant_id, p_product_variant_price
+                FROM product p, product_variant pv, product_variant_price pvp
+                WHERE p.id = pv.product_id 
+                    AND pv.id = pvp.product_variant_id
+                    AND p.label ilike '%sports coat%'
+                ORDER BY RANDOM() LIMIT 1;    
+                INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
+                    VALUES (sales_transaction_id, p_product_variant_id, p_product_variant_price, 1);       
         END LOOP;
 END;
 $$ LANGUAGE plpgsql;

@@ -5,20 +5,20 @@
 
 */
 
-DROP PROCEDURE IF EXISTS generate_product_inventory;
-CREATE PROCEDURE generate_product_inventory (maxunits INTEGER DEFAULT 500)
+DROP PROCEDURE IF EXISTS generate_product_variant_inventory;
+CREATE PROCEDURE generate_product_variant_inventory (p_maxunits INTEGER DEFAULT 500)
 AS
 $$
 DECLARE
-    product_record RECORD;
-    random_qty INTEGER;
+    v_product_variant_record RECORD;
+    v_random_qty INTEGER;
 BEGIN
-    TRUNCATE product_inventory;
-    FOR product_record IN SELECT id FROM product_reference.product 
+    TRUNCATE product_variant_inventory;
+    FOR v_product_variant_record IN SELECT id FROM product_reference.product_variant 
         LOOP
-            random_qty := TRUNC (RANDOM() * maxunits);
-            INSERT INTO product_inventory (product_id, qty)
-                VALUES (product_record.id, random_qty);
+            v_random_qty := TRUNC (RANDOM() * p_maxunits);
+            INSERT INTO product_variant_inventory (product_variant_id, qty)
+                VALUES (v_product_variant_record.id, v_random_qty);
         END LOOP;
 END;
 $$ LANGUAGE PLPGSQL;

@@ -40,8 +40,9 @@ CREATE PUBLICATION ecommerce_product_publication
         product_reference.product_category, 
         product_reference.product_brand, 
         product_reference.product, 
+        product_reference.product_variant,
         --- send only rows that pertain are currently active
-        product_reference.product_price WHERE (current = true);
+        product_reference.product_variant_price WHERE (current = true);
 
 
 -- publishing the reference data to central analytics
@@ -52,8 +53,9 @@ CREATE PUBLICATION central_analytics_product_publication
         product_reference.product_category, 
         product_reference.product_brand, 
         product_reference.product, 
+        product_reference.product_variant,
         --- send all rows
-        product_reference.product_price;
+        product_reference.product_variant_price;
 
 \echo '--> Verification: Listing tables in publications...'
 SELECT pubname, schemaname, tablename FROM pg_publication_tables;

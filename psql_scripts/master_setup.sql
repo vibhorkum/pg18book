@@ -96,14 +96,15 @@ $$;
 \i data_sets/ecommerce_reference_data/product_reference/product_brand.sql
 \i data_sets/ecommerce_reference_data/product_reference/product_category.sql
 \i data_sets/ecommerce_reference_data/product_reference/product.sql
-\i data_sets/ecommerce_reference_data/product_reference/product_price.sql
+\i data_sets/ecommerce_reference_data/product_reference/product_variant.sql
+\i data_sets/ecommerce_reference_data/product_reference/product_variant_price.sql
 
-CALL api.update_current_price_flags();
+
 
 \echo 'Product reference data loaded'
 
-\echo 'Allowing replication to catch up - 5 secs'
-SELECT PG_SLEEP(5);
+\echo 'Allowing replication to catch up - 10 secs'
+SELECT PG_SLEEP(10);
 
 
 /*
@@ -117,20 +118,22 @@ SELECT PG_SLEEP(5);
 \c east_ecommerce_data
 
 \i data_sets/east_ecommerce_data/east_customer/customer.sql
+\i data_sets/east_ecommerce_data/inventory/product_variant_inventory.sql
 \i data_sets/east_ecommerce_data/east_sales/sales_transaction.sql
 \i data_sets/east_ecommerce_data/east_sales/sales_transaction_line.sql
-\i data_sets/east_ecommerce_data/inventory/product_inventory.sql
+
 
 \echo '... loading west ecommerce data for customers and sales'
 
 \c west_ecommerce_data
 \i data_sets/west_ecommerce_data/west_customer/customer.sql
+\i data_sets/west_ecommerce_data/inventory/product_variant_inventory.sql
 \i data_sets/west_ecommerce_data/west_sales/sales_transaction.sql
 \i data_sets/west_ecommerce_data/west_sales/sales_transaction_line.sql
-\i data_sets/west_ecommerce_data/inventory/product_inventory.sql
 
-\echo 'Allowing replication to catch up - 20 secs'
-SELECT PG_SLEEP(20);
+
+\echo 'Allowing replication to catch up - 10 secs'
+SELECT PG_SLEEP(10);
 
 \echo 'Displaying replication results ...'
 
@@ -139,14 +142,14 @@ SELECT PG_SLEEP(20);
 \echo 'Reference data counts on ecommerce_reference_data'
 
 SELECT COUNT(*) as product_count from product;
-SELECT COUNT(*) as active_product_price_count from product_price where current=true;
+SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 
 \c east_ecommerce_data
 
 \echo 'East data counts'
 
 SELECT COUNT(*) as product_count from product;
-SELECT COUNT(*) as active_product_price_count from product_price where current=true;
+SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 SELECT COUNT(*) as customer_count from customer;
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
@@ -156,7 +159,7 @@ SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
 \echo 'West data counts'
 
 SELECT COUNT(*) as product_count from product;
-SELECT COUNT(*) as active_product_price_count from product_price where current=true;
+SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 SELECT COUNT(*) as customer_count from customer;
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
@@ -165,7 +168,7 @@ SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
 \echo 'Central Analytivs data counts'
 
 SELECT COUNT(*) as product_count from product;
-SELECT COUNT(*) as active_product_price_count from product_price where current=true;
+SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 
 
 SELECT COUNT(*) as east_customer_count from east_customer.customer;
