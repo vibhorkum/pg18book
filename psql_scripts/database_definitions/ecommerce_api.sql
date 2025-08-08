@@ -92,8 +92,8 @@ CREATE OR REPLACE VIEW api.vw_customer AS
 --------------------------------------------------------------------------------
 /*
     inventory API
-    * api.manage_inventory
-    * api.vw_inventory
+    * api.manage_product_variant_inventory
+    * api.vw_product_variant_inventory
 */
 
 
@@ -114,7 +114,7 @@ DECLARE
     v_inserted_id JSONB;
 BEGIN
     IF p_operation_type = 'INSERT' THEN
-        INSERT INTO product_variant_inventory (product_id, qty)
+        INSERT INTO product_variant_inventory (product_variant_id, qty)
             VALUES (p_product_variant_id, p_qty)
             RETURNING to_jsonb(NEW) INTO v_new_row;
         RETURN QUERY SELECT 
@@ -123,7 +123,7 @@ BEGIN
             v_new_row AS new_value;
 
     ELSEIF p_operation_type = 'UPDATE' THEN
-        UPDATE p_product_variant_id 
+        UPDATE product_variant_inventory 
             SET
                 qty = p_qty
             WHERE product_variant_id = p_product_variant_id

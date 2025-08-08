@@ -107,12 +107,10 @@ $$;
 SELECT PG_SLEEP(10);
 
 
-/*
 --- this resets the sequences so that the API calls don't conflict
 
 \i data_sets/ecommerce_reference_data/product_reference/alter_product_reference_sequences.sql
 
-*/
 \echo '... loading east ecommerce data for customers and sales'
 
 \c east_ecommerce_data

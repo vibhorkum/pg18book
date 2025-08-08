@@ -22,6 +22,10 @@ CREATE ROLE replication_dba WITH
     LOGIN
     PASSWORD 'postgres';    
 
+--- this role will be used by pgAudit
+DROP ROLE IF EXISTS audit;
+CREATE ROLE audit;    
+
 /* 
 \c postgres postgres
 

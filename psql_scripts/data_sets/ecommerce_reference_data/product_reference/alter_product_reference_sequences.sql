@@ -13,5 +13,8 @@ ALTER SEQUENCE product_category_id_seq RESTART;
 ALTER SEQUENCE product_id_seq START 10000;
 ALTER SEQUENCE product_id_seq RESTART;
 
-ALTER SEQUENCE product_price_id_seq START 10000;
-ALTER SEQUENCE product_price_id_seq RESTART;
+ALTER SEQUENCE product_variant_id_seq START 10000;
+ALTER SEQUENCE product_variant_id_seq RESTART;
+
+ALTER SEQUENCE product_variant_price_id_seq START 10000;
+ALTER SEQUENCE product_variant_price_id_seq RESTART;
