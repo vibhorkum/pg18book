@@ -179,4 +179,6 @@ SELECT COUNT(*) as sales_transaction_count from merged_sales.sales_transaction;
 SELECT COUNT(*) as sales_transaction_line_count from merged_sales.sales_transaction_line;
 \echo 'Done with setup'
 
+\c postgres
+
 \l

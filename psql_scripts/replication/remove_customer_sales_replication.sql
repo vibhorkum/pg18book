@@ -10,9 +10,6 @@
 
 \set subscriber_db4 'central_analytics'
 
-\set publisher_conn_string2 'host=localhost port=5432 dbname=west_ecommerce_data'
-\set publisher_conn_string3 'host=localhost port=5432 dbname=east_ecommerce_data'
-
 \set sub_slot_4 'west_customer_sales_data_sub'
 \set sub_slot_5 'east_customer_sales_data_sub'
 

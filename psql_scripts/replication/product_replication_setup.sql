@@ -13,7 +13,8 @@
 \set subscriber_db3 'central_analytics'
 
 
-\set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data'
+-- this needs to change
+\set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data user=postgres password=postgres'
 
 \set sub_slot_1 'west_product_reference_data_sub'
 \set sub_slot_2 'east_product_reference_data_sub'
