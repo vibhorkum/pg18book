@@ -84,15 +84,26 @@ To enable AI-powered product recommendations:
 # Install pgvector extension (Rocky Linux)
 Install steps (https://github.com/pgvector/pgvector)
 
-# Add enhanced sample data with diverse product catalog
-psql -U your_superuser -d ecommerce_reference_data -f enhanced_sample_data.sql
+# Complete the master setup first (creates all databases and replication)
+psql -U your_superuser -f psql_scripts/master_setup.sql
 
-# Set up AI recommendation system on US database
-psql -U your_superuser -d us_ecommerce_data -f ai_recommendations.sql
+# Set up AI recommendation system on subscriber database
+psql -U your_superuser -d us_ecommerce_data -f psql_scripts/ai_recommendations.sql
 
-# Run comprehensive AI examples and demonstrations
-psql -U your_superuser -d us_ecommerce_data -f ai_examples.sql
+# Validate AI system installation
+psql -U your_superuser -d us_ecommerce_data -f psql_scripts/ai_validation.sql
+
+# Run comprehensive AI examples and demonstrations  
+psql -U your_superuser -d us_ecommerce_data -f psql_scripts/ai_examples.sql
+
+# Experience the AI demo
+psql -U your_superuser -d us_ecommerce_data -f psql_scripts/ai_demo.sql
 ```
+
+**Important Notes:**
+- AI functions must be installed on **subscriber databases** (us_ecommerce_data, west_ecommerce_data, east_ecommerce_data) that contain replicated product data
+- Do NOT install AI functions on the ecommerce_reference_data database
+- The AI system works with the schema-based table structure introduced in recent updates
 
 **AI Features Available:**
 - **Content-based similarity**: Find products similar to a given product using vector embeddings

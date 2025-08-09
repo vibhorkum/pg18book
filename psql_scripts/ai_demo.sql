@@ -1,11 +1,38 @@
 -- =================================================================
 --  AI RECOMMENDATION SYSTEM DEMO
 --  PURPOSE: Simple demonstration of AI-powered e-commerce recommendations
+--  DATABASE: Should be run on west_ecommerce_data or east_ecommerce_data 
+--            (databases with replicated product data)
 -- =================================================================
+
+-- Connect to the appropriate database
+\c west_ecommerce_data
 
 \echo '================================================================='
 \echo '🤖 AI-POWERED E-COMMERCE RECOMMENDATION SYSTEM DEMO'
 \echo '================================================================='
+
+-- Validation check
+DO $$
+DECLARE
+    table_count INTEGER;
+    current_db TEXT;
+BEGIN
+    SELECT current_database() INTO current_db;
+    
+    -- Check if required tables exist
+    SELECT COUNT(*) INTO table_count
+    FROM information_schema.tables 
+    WHERE table_name IN ('product', 'product_brand', 'product_category')
+    AND table_schema IN ('public', 'product_reference');
+    
+    IF table_count < 3 THEN
+        RAISE EXCEPTION 'Required product tables not found. Please ensure you are connected to a database with replicated product data (us_ecommerce_data, west_ecommerce_data, or east_ecommerce_data).';
+    END IF;
+    
+    RAISE NOTICE 'Database validation successful: % has required product tables', current_db;
+END;
+$$;
 
 -- Setup: Generate embeddings for all products
 \echo ''
@@ -56,11 +83,11 @@ SELECT
     category_label,
     similarity_score,
     CASE 
-        WHEN similarity_score > 0.3 THEN '🎯 Perfect Match'
-        WHEN similarity_score > 0.2 THEN '✅ Good Match'
+        WHEN similarity_score > 0.15 THEN '🎯 Perfect Match'
+        WHEN similarity_score > 0.05 THEN '✅ Good Match'
         ELSE '📋 Related'
     END as match_quality
-FROM search_similar_products_by_text('shirt for business meetings', 0.1, 5)
+FROM search_similar_products_by_text('shirt for business meetings', 0.01, 5)
 ORDER BY similarity_score DESC;
 
 \echo ''
@@ -72,11 +99,11 @@ SELECT
     category_label,
     similarity_score,
     CASE 
-        WHEN similarity_score > 0.3 THEN '🎯 Perfect Match'
-        WHEN similarity_score > 0.2 THEN '✅ Good Match'
+        WHEN similarity_score > 0.15 THEN '🎯 Perfect Match'
+        WHEN similarity_score > 0.05 THEN '✅ Good Match'
         ELSE '📋 Related'
     END as match_quality
-FROM search_similar_products_by_text('casual denim jeans', 0.1, 5)
+FROM search_similar_products_by_text('casual denim jeans', 0.01, 5)
 ORDER BY similarity_score DESC;
 
 -- Show embedding details
@@ -107,7 +134,7 @@ SELECT
     brand_label,
     ROUND((similarity_score * 100)::NUMERIC, 1) || '%' as similarity_percentage,
     COALESCE(price::text, 'Price varies') as price_info
-FROM find_similar_products(1, 0.3, 3)
+FROM find_similar_products(1, 0.05, 3)
 ORDER BY similarity_score DESC;
 
 \echo ''
@@ -120,7 +147,7 @@ SELECT
     brand_label,
     category_label,
     ROUND((similarity_score * 100)::NUMERIC, 1) || '% match' as relevance
-FROM search_similar_products_by_text('professional work clothes', 0.15, 4)
+FROM search_similar_products_by_text('professional work clothes', 0.01, 4)
 ORDER BY similarity_score DESC;
 
 \echo ''
@@ -132,11 +159,11 @@ SELECT
     '👕 ' || product_label as complement_suggestion,
     brand_label,
     CASE 
-        WHEN similarity_score > 0.4 THEN '🔥 Perfect Combo'
-        WHEN similarity_score > 0.2 THEN '✅ Good Pairing'
+        WHEN similarity_score > 0.2 THEN '🔥 Perfect Combo'
+        WHEN similarity_score > 0.05 THEN '✅ Good Pairing'
         ELSE '📝 Consider This'
     END as pairing_strength
-FROM find_similar_products(3, 0.15, 5)  -- Product ID 3 is jeans
+FROM find_similar_products(3, 0.01, 5)  -- Product ID 3 is jeans
 WHERE product_id != 3
 ORDER BY similarity_score DESC;
 

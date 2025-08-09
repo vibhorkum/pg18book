@@ -2,7 +2,12 @@
 --  AI RECOMMENDATION SYSTEM EXAMPLES
 --  PURPOSE: Demonstrates how to use the AI-powered recommendation
 --           features for e-commerce applications
+--  DATABASE: Should be run on west_ecommerce_data or east_ecommerce_data 
+--            (databases with replicated product data)
 -- =================================================================
+
+-- Connect to the appropriate database
+\c west_ecommerce_data
 
 \echo '[AI EXAMPLES] ==> AI Recommendation System Usage Examples'
 \echo '================================================================='
@@ -57,94 +62,160 @@ SELECT * FROM search_similar_products_by_text('casual weekend outfit', 0.15, 5);
 \echo 'CREATING SAMPLE CUSTOMER AND PURCHASE DATA'
 \echo '================================================================='
 
-\echo '--> Adding sample customers...'
-INSERT INTO customer (id, first_name, last_name, phone_numbers, street_address, city, postal_code, country)
-    VALUES
-        (2, 'Sarah', 'Johnson', '{"mobile": "+1-555-0102"}', '123 Fashion Ave', 'New York', 'NY 10001', 'USA'),
-        (3, 'Michael', 'Chen', '{"mobile": "+1-555-0103"}', '456 Style St', 'Los Angeles', 'CA 90210', 'USA'),
-        (4, 'Emma', 'Rodriguez', '{"mobile": "+1-555-0104"}', '789 Trend Blvd', 'Chicago', 'IL 60601', 'USA'),
-        (5, 'James', 'Wilson', '{"mobile": "+1-555-0105"}', '321 Modern Rd', 'Austin', 'TX 78701', 'USA'),
-        (6, 'Olivia', 'Davis', '{"mobile": "+1-555-0106"}', '654 Chic Lane', 'Seattle', 'WA 98101', 'USA')
-    ON CONFLICT (id) DO NOTHING;
+-- Check if customer table exists and what type of ID it uses
+DO $$
+DECLARE
+    customer_table_exists BOOLEAN;
+    id_column_type TEXT;
+    current_db TEXT;
+BEGIN
+    SELECT current_database() INTO current_db;
+    
+    -- Check if customer table exists
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = 'customer' 
+        AND table_schema IN ('public', 'west_customer', 'east_customer')
+    ) INTO customer_table_exists;
+    
+    IF customer_table_exists THEN
+        -- Check ID column type
+        SELECT data_type INTO id_column_type
+        FROM information_schema.columns 
+        WHERE table_name = 'customer' 
+        AND column_name = 'id'
+        AND table_schema IN ('public', 'west_customer', 'east_customer')
+        LIMIT 1;
+        
+        RAISE NOTICE 'Customer table found in % with ID type: %', current_db, id_column_type;
+    ELSE
+        RAISE NOTICE 'Customer table not found in %. Collaborative filtering examples will be skipped.', current_db;
+    END IF;
+END;
+$$;
 
-\echo '--> Adding sample sales transactions...'
-INSERT INTO sales_transaction (id, transaction_date, customer_id)
+\echo '--> Adding sample customers (if customer table exists)...'
+-- Try to insert sample customers - this may fail gracefully on some database configurations
+INSERT INTO customer (first_name, last_name, phone_numbers, street_address, city, postal_code, country)
     VALUES
-        ('550e8400-e29b-41d4-a716-446655440001', '2024-12-01', 1),
-        ('550e8400-e29b-41d4-a716-446655440002', '2024-12-02', 2),
-        ('550e8400-e29b-41d4-a716-446655440003', '2024-12-03', 2),
-        ('550e8400-e29b-41d4-a716-446655440004', '2024-12-04', 3),
-        ('550e8400-e29b-41d4-a716-446655440005', '2024-12-05', 3),
-        ('550e8400-e29b-41d4-a716-446655440006', '2024-12-06', 4),
-        ('550e8400-e29b-41d4-a716-446655440007', '2024-12-07', 4),
-        ('550e8400-e29b-41d4-a716-446655440008', '2024-12-08', 5),
-        ('550e8400-e29b-41d4-a716-446655440009', '2024-12-09', 5),
-        ('550e8400-e29b-41d4-a716-446655440010', '2024-12-10', 6),
-        ('550e8400-e29b-41d4-a716-446655440011', '2024-12-11', 6),
-        ('550e8400-e29b-41d4-a716-446655440012', '2024-12-12', 1),
-        ('550e8400-e29b-41d4-a716-446655440013', '2024-12-13', 2),
-        ('550e8400-e29b-41d4-a716-446655440014', '2024-12-14', 3)
-    ON CONFLICT (id) DO NOTHING;
+        ('Sarah', 'Johnson', '{"mobile": "+1-555-0102"}', '123 Fashion Ave', 'New York', 'NY 10001', 'USA'),
+        ('Michael', 'Chen', '{"mobile": "+1-555-0103"}', '456 Style St', 'Los Angeles', 'CA 90210', 'USA'),
+        ('Emma', 'Rodriguez', '{"mobile": "+1-555-0104"}', '789 Trend Blvd', 'Chicago', 'IL 60601', 'USA'),
+        ('James', 'Wilson', '{"mobile": "+1-555-0105"}', '321 Modern Rd', 'Austin', 'TX 78701', 'USA'),
+        ('Olivia', 'Davis', '{"mobile": "+1-555-0106"}', '654 Chic Lane', 'Seattle', 'WA 98101', 'USA')
+    ON CONFLICT DO NOTHING;
 
-\echo '--> Adding sample sales transaction lines...'
-INSERT INTO sales_transaction_line (id, sales_transaction_id, product_variant_id, qty, price_at_sale)
-    VALUES
-        -- Customer 1 (Marc) purchases - business professional
-        ('650e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 1, 1, 31.00), -- Oxford shirt
-        ('650e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440001', 13, 1, 125.00), -- Ralph Lauren chinos
-        ('650e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440012', 4, 1, 89.99), -- Calvin Klein shirt
-        ('650e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440012', 40, 1, 59.99), -- Calvin Klein belt
+\echo '--> Adding sample sales transactions (simplified for demo)...'
+-- Note: This sample data is simplified and may not work in all database configurations
+-- In production, you would have real customer IDs from your application
+-- For demo purposes, we'll use existing customers or create minimal test data
+
+-- Only proceed if we have customers
+DO $$
+DECLARE
+    customer_count INTEGER;
+    sample_customer_id TEXT;
+BEGIN
+    -- Count existing customers
+    SELECT COUNT(*) INTO customer_count FROM customer LIMIT 1;
+    
+    IF customer_count > 0 THEN
+        -- Get a sample customer ID for demo purposes
+        SELECT id INTO sample_customer_id FROM customer LIMIT 1;
         
-        -- Customer 2 (Sarah) purchases - fashion-forward professional
-        ('650e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440002', 7, 1, 159.99), -- Zara silk blouse
-        ('650e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440002', 16, 1, 79.99), -- Zara midi dress
-        ('650e8400-e29b-41d4-a716-446655440007', '550e8400-e29b-41d4-a716-446655440003', 37, 1, 89.99), -- Adidas sneakers
-        ('650e8400-e29b-41d4-a716-446655440008', '550e8400-e29b-41d4-a716-446655440013', 43, 1, 149.99), -- Tommy Hilfiger watch
+        RAISE NOTICE 'Found % customers. Using customer ID % for sample data.', customer_count, sample_customer_id;
         
-        -- Customer 3 (Michael) purchases - athletic/casual
-        ('650e8400-e29b-41d4-a716-446655440009', '550e8400-e29b-41d4-a716-446655440004', 19, 2, 34.99), -- Nike athletic t-shirt
-        ('650e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440004', 22, 1, 59.99), -- Adidas track pants
-        ('650e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440005', 34, 1, 129.99), -- Nike running shoes
-        ('650e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440014', 28, 1, 99.90), -- Uniqlo down jacket
+        -- Insert a few sample transactions using the existing customer
+        INSERT INTO sales_transaction (transaction_date, customer_id)
+        VALUES 
+            (CURRENT_DATE - INTERVAL '1 day', sample_customer_id),
+            (CURRENT_DATE - INTERVAL '2 days', sample_customer_id)
+        ON CONFLICT DO NOTHING;
         
-        -- Customer 4 (Emma) purchases - mixed style
-        ('650e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440006', 10, 1, 69.99), -- Tommy Hilfiger polo
-        ('650e8400-e29b-41d4-a716-446655440014', '550e8400-e29b-41d4-a716-446655440006', 3, 1, 33.50), -- 501 jeans
-        ('650e8400-e29b-41d4-a716-446655440015', '550e8400-e29b-41d4-a716-446655440007', 31, 1, 149.99), -- Lacoste windbreaker
-        
-        -- Customer 5 (James) purchases - business casual
-        ('650e8400-e29b-41d4-a716-446655440016', '550e8400-e29b-41d4-a716-446655440008', 5, 1, 89.99), -- Calvin Klein shirt (blue)
-        ('650e8400-e29b-41d4-a716-446655440017', '550e8400-e29b-41d4-a716-446655440008', 14, 1, 125.00), -- Ralph Lauren chinos (navy)
-        ('650e8400-e29b-41d4-a716-446655440018', '550e8400-e29b-41d4-a716-446655440009', 44, 1, 149.99), -- Tommy Hilfiger watch (brown)
-        
-        -- Customer 6 (Olivia) purchases - athletic/fitness focused
-        ('650e8400-e29b-41d4-a716-446655440019', '550e8400-e29b-41d4-a716-446655440010', 25, 2, 49.99), -- Under Armour sports bra
-        ('650e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', 20, 1, 34.99), -- Nike athletic t-shirt (grey)
-        ('650e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440011', 35, 1, 129.99), -- Nike running shoes (white)
-        ('650e8400-e29b-41d4-a716-446655440022', '550e8400-e29b-41d4-a716-446655440011', 23, 1, 59.99) -- Adidas track pants (navy)
-    ON CONFLICT (id) DO NOTHING;
+    ELSE
+        RAISE NOTICE 'No customers found. Skipping sales transaction sample data.';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Could not create sample sales data: %', SQLERRM;
+END;
+$$;
+
+\echo '--> Adding sample sales transaction lines (simplified)...'
+-- Create some sample transaction lines for demonstration
+-- This uses existing sales transactions and product variants
+
+DO $$
+DECLARE
+    transaction_record RECORD;
+    variant_record RECORD;
+    line_count INTEGER := 0;
+BEGIN
+    -- Create sample transaction lines using existing data
+    FOR transaction_record IN 
+        SELECT id as transaction_id FROM sales_transaction LIMIT 3
+    LOOP
+        -- Add a few product variants to each transaction
+        FOR variant_record IN 
+            SELECT id as variant_id FROM product_variant LIMIT 2
+        LOOP
+            BEGIN
+                INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, qty, price_at_sale)
+                VALUES (transaction_record.transaction_id, variant_record.variant_id, 1, 29.99);
+                line_count := line_count + 1;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    -- Ignore conflicts or errors
+                    NULL;
+            END;
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Created % sample transaction lines', line_count;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Could not create sample transaction lines: %', SQLERRM;
+END;
+$$;
 
 \echo '--> Adding sample product ratings...'
-INSERT INTO product_ratings (customer_id, product_id, rating, review_text)
-    VALUES
-        (1, 1, 5, 'Excellent quality Oxford shirt, perfect for business meetings.'),
-        (1, 4, 4, 'Great fit and quality, slightly expensive but worth it.'),
-        (1, 7, 5, 'These chinos are my go-to for business casual events.'),
-        (2, 5, 5, 'Beautiful silk blouse, love the professional look.'),
-        (2, 8, 4, 'Elegant dress, great for work and evening events.'),
-        (2, 15, 4, 'Comfortable sneakers for casual wear.'),
-        (3, 9, 5, 'Perfect athletic shirt, keeps me dry during workouts.'),
-        (3, 10, 4, 'Classic Adidas style, very comfortable.'),
-        (3, 14, 5, 'Amazing running shoes, great for long distance.'),
-        (4, 6, 4, 'Nice polo shirt, good quality and fit.'),
-        (4, 3, 5, 'Love these 501 jeans, classic and durable.'),
-        (4, 13, 4, 'Good windbreaker for unpredictable weather.'),
-        (5, 4, 5, 'Excellent business shirt, highly recommended.'),
-        (5, 7, 4, 'Good quality chinos, professional appearance.'),
-        (6, 11, 5, 'Best sports bra I''ve owned, great support.'),
-        (6, 9, 4, 'Good athletic shirt, comfortable for workouts.'),
-        (6, 14, 5, 'Excellent running shoes, very comfortable.')
-    ON CONFLICT (customer_id, product_id) DO NOTHING;
+-- Create some sample product ratings for demonstration
+DO $$
+DECLARE
+    customer_record RECORD;
+    product_record RECORD;
+    rating_count INTEGER := 0;
+BEGIN
+    -- Create some sample ratings using existing customers and products
+    FOR customer_record IN 
+        SELECT id as customer_id FROM customer LIMIT 3
+    LOOP
+        FOR product_record IN 
+            SELECT id as product_id FROM product LIMIT 2
+        LOOP
+            BEGIN
+                INSERT INTO product_ratings (customer_id, product_id, rating, review_text)
+                VALUES (
+                    customer_record.customer_id, 
+                    product_record.product_id, 
+                    4 + ROUND(RANDOM())::INTEGER, -- Random rating 4 or 5
+                    'Great product, would recommend!'
+                );
+                rating_count := rating_count + 1;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    -- Ignore conflicts or errors
+                    NULL;
+            END;
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Created % sample product ratings', rating_count;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Could not create sample product ratings: %', SQLERRM;
+END;
+$$;
 
 -- =================================================================
 --  SECTION 4: COLLABORATIVE FILTERING EXAMPLES
