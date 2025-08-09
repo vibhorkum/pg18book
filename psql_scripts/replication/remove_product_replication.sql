@@ -1,27 +1,30 @@
 -- =================================================================
---  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION
+--  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION FOR PRODUCT REFERENCE
 --  This script tears down the publications, subscriptions,
 --  and replication slots created by the setup script.
 -- =================================================================
 
 -- Step 0: Define variables for easier maintenance
-\set publisher_db 'ecommerce_reference_data'
-\set subscriber_db 'us_ecommerce_data'
-\set sub_slot_1 'us_reference_data_sub'
-\set sub_slot_2 'us_product_variant_price_sub'
+\set publisher_db1 'ecommerce_reference_data'
 
-SET vars.sub_slot_1 TO :'sub_slot_1';
-SET vars.sub_slot_2 TO :'sub_slot_2';
+\set subscriber_db1 'west_ecommerce_data'
+\set subscriber_db2 'east_ecommerce_data'
+\set subscriber_db3 'central_analytics'
+
+\set sub_slot_1 'west_product_reference_data_sub'
+\set sub_slot_2 'east_product_reference_data_sub'
+\set sub_slot_3 'central_analytics_product_reference_sub'
+
+-- SET vars.sub_slot_1 TO :'sub_slot_1';
 
 \echo '*** Rollback Script Started ***'
 
 -- =================================================================
 --  Step 1: Disable and Drop Subscriptions on the Subscriber
 -- =================================================================
-\c :subscriber_db
-\echo 'Connected to subscriber database ->' :subscriber_db
+\c :subscriber_db1
+\echo 'Connected to subscriber database ->' :subscriber_db1
 
-BEGIN;
 
 \echo '--> Disabling subscription' :'sub_slot_1' 'if it exists...'
 -- It's good practice to disable before dropping.
@@ -30,29 +33,49 @@ BEGIN;
 ALTER SUBSCRIPTION :sub_slot_1 DISABLE;
 ALTER SUBSCRIPTION :sub_slot_1 SET (slot_name = NONE);
 
-\echo '--> Disabling subscription' :'sub_slot_2' 'if it exists...'
-ALTER SUBSCRIPTION :sub_slot_2 DISABLE;
-ALTER SUBSCRIPTION :sub_slot_2 SET (slot_name = NONE);
-
-COMMIT;
-
 \echo '--> Dropping subscription' :'sub_slot_1' 'if it exists...'
 DROP SUBSCRIPTION IF EXISTS :sub_slot_1;
 
-\echo '--> Dropping subscription' :'sub_slot_2' 'if it exists...'
+\c :subscriber_db2
+\echo 'Connected to subscriber database ->' :subscriber_db2
+
+
+\echo '--> Disabling subscription' :'sub_slot_2' 'if it exists...'
+-- It's good practice to disable before dropping.
+-- And remove slot dependencies
+-- The IF EXISTS on the DROP command handles cases where it's already gone.
+ALTER SUBSCRIPTION :sub_slot_2 DISABLE;
+ALTER SUBSCRIPTION :sub_slot_2 SET (slot_name = NONE);
+
+\echo '--> Dropping subscription' :'sub_slot_1' 'if it exists...'
 DROP SUBSCRIPTION IF EXISTS :sub_slot_2;
 
+\c :subscriber_db3
+\echo 'Connected to subscriber database ->' :subscriber_db3
 
-\echo '--> Subscriptions have been dropped.'
+
+\echo '--> Disabling subscription' :'sub_slot_3' 'if it exists...'
+-- It's good practice to disable before dropping.
+-- And remove slot dependencies
+-- The IF EXISTS on the DROP command handles cases where it's already gone.
+ALTER SUBSCRIPTION :sub_slot_3 DISABLE;
+ALTER SUBSCRIPTION :sub_slot_3 SET (slot_name = NONE);
+
+\echo '--> Dropping subscription' :'sub_slot_3' 'if it exists...'
+DROP SUBSCRIPTION IF EXISTS :sub_slot_3;
+
+\echo '--> Subscriptions dropped.'
 
 -- =================================================================
---  Step 2: Drop Replication Slots on the Publisher
+--  Step 2: Drop Replication Slots on the Publisher ecommerce reference
 -- =================================================================
-\c :publisher_db
+\c :publisher_db1
 SET vars.sub_slot_1 TO :'sub_slot_1';
 SET vars.sub_slot_2 TO :'sub_slot_2';
+SET vars.sub_slot_3 TO :'sub_slot_3';
 
-\echo 'Connected to publisher database ->' :publisher_db
+
+\echo 'Connected to publisher database ->' :publisher_db1
 
 -- Drop the replication slot for the first subscription, if it exists.
 -- A DO block is used to conditionally call the drop function.
@@ -70,9 +93,7 @@ BEGIN
 END$$;
 
 -- Drop the replication slot for the second subscription, if it exists.
-
-\echo '--> Replication slots have been dropped.'
-
+-- A DO block is used to conditionally call the drop function.
 DO $$
 DECLARE
         sub_slot_2 TEXT := current_setting('vars.sub_slot_2');
@@ -86,18 +107,38 @@ BEGIN
     END IF;
 END$$;
 
+-- Drop the replication slot for the third subscription, if it exists.
+-- A DO block is used to conditionally call the drop function.
+DO $$
+DECLARE
+        sub_slot_3 TEXT := current_setting('vars.sub_slot_3');
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = sub_slot_3) THEN
+        RAISE NOTICE  '--> Dropping replication slot: %', sub_slot_3;
+        -- Note: pg_drop_replication_slot is a function, not standard DDL.
+        PERFORM pg_drop_replication_slot(sub_slot_3);
+    ELSE
+        RAISE NOTICE '--> Replication slot : % does not exist. Skipping.', sub_slot_2;
+    END IF;
+END$$;
+
+\echo '--> Replication slots have been dropped.'
+
+
 -- =================================================================
 --  Step 3: Drop Publications on the Publisher
 -- =================================================================
 -- This can be done in the same connection to the publisher.
 
-\echo '--> Dropping publication: us_product_publication'
-DROP PUBLICATION IF EXISTS us_product_publication;
+\echo '--> Dropping publication: west_product_publication'
+DROP PUBLICATION IF EXISTS west_product_reference_publication;
 
-\echo '--> Dropping publication: us_product_variant_price_publication'
-DROP PUBLICATION IF EXISTS us_product_variant_price_publication;
+\echo '--> Dropping publication: east_product_publication'
+DROP PUBLICATION IF EXISTS east_product_reference_publication;
 
+\echo '--> Dropping publication: central_product_publication'
+DROP PUBLICATION IF EXISTS central_analytics_product_publication;
 
-\echo '--> Publications have been dropped.'
+\echo '--> Publications dropped.'
 
 \echo '*** Rollback Script Finished Successfully ***'
