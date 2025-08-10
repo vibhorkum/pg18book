@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  postgres:
+    build:
+      context: ../postgresql
+      dockerfile: Dockerfile
+    container_name: pg18book
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_logs:/var/log/postgresql
+      - ../../psql_scripts:/docker-entrypoint-initdb.d/scripts:ro
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      
+      # AI Demo Performance Configuration
+      PG_SHARED_BUFFERS: 512MB
+      PG_EFFECTIVE_CACHE_SIZE: 2GB
+      PG_WORK_MEM: 8MB
+      PG_MAINTENANCE_WORK_MEM: 128MB
+      PG_MAX_CONNECTIONS: 100
+      
+      # Replication Configuration for AI Demo
+      PG_WAL_LEVEL: logical
+      PG_MAX_REPLICATION_SLOTS: 10
+      PG_MAX_WAL_SENDERS: 10
+      PG_MAX_LOGICAL_REPLICATION_WORKERS: 4
+      
+      # Optimized for Vector Operations
+      PG_RANDOM_PAGE_COST: 1.1
+      PG_EFFECTIVE_IO_CONCURRENCY: 200
+      PG_MAX_PARALLEL_WORKERS: 4
+      PG_MAX_PARALLEL_WORKERS_PER_GATHER: 2
+      
+      # AI Demo Logging
+      PG_LOGGING_COLLECTOR: "on"
+      PG_LOG_DIRECTORY: /var/log/postgresql
+      PG_LOG_FILENAME: postgresql-ai-%Y-%m-%d.log
+      PG_LOG_MIN_DURATION_STATEMENT: 500
+    networks:
+      - pg18book-ai
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for AI demo management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-ai
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pg18book.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - pg18book-ai
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_logs:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  pg18book-ai:
+    driver: bridge

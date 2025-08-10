@@ -1,3 +1,14 @@
+# DEPRECATED: This file is maintained for backward compatibility
+# Please use the new organized Docker structure in ./docker/compose/
+# 
+# For new installations, use:
+#   ./docker/quick-start.sh
+# OR
+#   cd docker/compose && docker-compose -f docker-compose.ai-demo.yml up -d
+#
+# To migrate from this setup to the new structure:
+#   ./docker/migrate.sh
+
 version: '3.8'
 
 services:

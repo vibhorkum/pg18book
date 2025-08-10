@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres-dev:
+    build:
+      context: ../postgresql
+      dockerfile: Dockerfile
+    container_name: pg18book-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_dev_logs:/var/log/postgresql
+      - ../../psql_scripts:/docker-entrypoint-initdb.d/scripts:ro
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      
+      # Development Performance Configuration (Lower memory usage)
+      PG_SHARED_BUFFERS: 128MB
+      PG_EFFECTIVE_CACHE_SIZE: 512MB
+      PG_WORK_MEM: 2MB
+      PG_MAINTENANCE_WORK_MEM: 32MB
+      PG_MAX_CONNECTIONS: 50
+      
+      # Development Replication Configuration
+      PG_WAL_LEVEL: logical
+      PG_MAX_REPLICATION_SLOTS: 5
+      PG_MAX_WAL_SENDERS: 5
+      PG_MAX_LOGICAL_REPLICATION_WORKERS: 2
+      
+      # Enhanced Development Logging
+      PG_LOGGING_COLLECTOR: "on"
+      PG_LOG_DIRECTORY: /var/log/postgresql
+      PG_LOG_FILENAME: postgresql-dev-%Y-%m-%d.log
+      PG_LOG_MIN_DURATION_STATEMENT: 100
+      PG_LOG_STATEMENT: all
+      PG_LOG_CHECKPOINTS: "on"
+      PG_LOG_LOCK_WAITS: "on"
+      PG_LOG_TEMP_FILES: 0
+    networks:
+      - pg18book-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  postgres_dev_logs:
+    driver: local
+
+networks:
+  pg18book-dev:
+    driver: bridge
