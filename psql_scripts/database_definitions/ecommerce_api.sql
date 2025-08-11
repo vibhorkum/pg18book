@@ -1,11 +1,14 @@
 -- =================================================================
 -- API Definitions for the eCommerce databases
--- add/edit/delete/view customer
--- add/edit/delete/view inventory 
--- add/edit/delete/view sales_transaction
--- add/edit/delete/view sales_transaction_line
--- view for sales by customer (full and focus)
+    -- add/edit/delete/view customer
+    -- add/edit/delete/view inventory 
+    -- add/edit/delete/view sales_transaction
+    -- add/edit/delete/view sales_transaction_line
+    -- view for sales by customer (full and focus)
+    -- views for product_brand, product_category, product_variant, product_variant_price
 -- =================================================================
+
+
 
 /*
     customer API
@@ -245,7 +248,7 @@ CREATE OR REPLACE FUNCTION api.manage_sales_transaction_line (
     p_operation_type TEXT,
     p_id TEXT DEFAULT NULL,
     p_sales_transaction_id TEXT DEFAULT NULL,
-    p_product_id INTEGER DEFAULT NULL,
+    p_product_variant_id INTEGER DEFAULT NULL,
     p_qty INTEGER DEFAULT NULL,
     p_price_at_sale NUMERIC DEFAULT NULL
 )
@@ -261,8 +264,8 @@ DECLARE
     v_inserted_id JSONB;
 BEGIN
     IF p_operation_type = 'INSERT' THEN
-        INSERT INTO sales_transaction_line (sales_transaction_id, product_id, qty, price_at_sale)
-            VALUES (p_sales_transaction_id, p_product_id,p_qty, p_price_at_sale)
+        INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, qty, price_at_sale)
+            VALUES (p_sales_transaction_id, p_product_variant_id,p_qty, p_price_at_sale)
             RETURNING to_jsonb(NEW) INTO v_new_row;
         RETURN QUERY SELECT 
             'INSERT'::TEXT AS operation_type,
@@ -273,7 +276,7 @@ BEGIN
         UPDATE sales_transaction_line 
             SET
                 sales_transaction_id = p_sales_transaction_id,
-                product_id = p_product_id,
+                product_variant_id = p_product_variant_id,
                 qty = p_qty,
                 price_at_sale = p_price_at_sale
             WHERE id = p_id
@@ -324,4 +327,20 @@ CREATE OR REPLACE VIEW api.sales_by_customer AS
         JOIN product_variant pv ON pv.id = stl.product_variant_id
         JOIN product p ON pv.product_id = p.id;
 
+-- views for product_brand, product_category, product_variant, product_variant_price
+
+CREATE OR REPLACE VIEW api.vw_product_catgory AS
+    SELECT id, label, description FROM product_category;
+
+CREATE OR REPLACE VIEW api.vw_product_brand AS
+    SELECT id, label, description FROM product_brand;
+
+CREATE OR REPLACE VIEW api.vw_product AS
+    SELECT id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename FROM product;
+
+CREATE OR REPLACE VIEW api.vw_product_variant AS
+    SELECT id, product_id, attributes, upc FROM product_variant;
+
+CREATE OR REPLACE VIEW api.vw_product_variant_price AS
+    SELECT id, product_variant_id, price, validity, current FROM product_variant_price;    
 

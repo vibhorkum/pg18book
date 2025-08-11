@@ -7,6 +7,8 @@ These are samples for illustration purpose only.
 
 We will define sample audits for the following operations:
 
+All DDL in all databases on the server
+
 eCommerce Reference Data
 
 1) all changes to the product brand and price definitions
@@ -24,6 +26,8 @@ Analytics Service
 \c postgres
 
 ALTER SYSTEM SET pgaudit.role = 'auditor';
+
+ALTER SYSTEM SET audit.pgaudit.log ='ddl';
 
 \c ecommerce_reference_data
 
