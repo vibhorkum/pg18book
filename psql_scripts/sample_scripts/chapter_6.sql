@@ -277,15 +277,18 @@ BEGIN
             -- commit the inventory
             UPDATE product_variant_inventory SET qty = qty - v_qty
                 WHERE product_variant_id = v_pv_id;
-            RAISE NOTICE 'Success with order % for % units. Sufficient inventory on hand',
-                         v_pv_id, v_qty;
+            RAISE NOTICE 
+                'Success with order % for % units. Sufficient inventory on hand',
+                 v_pv_id, v_qty;
             -- add this successful line to the return result
             v_products_ordered := v_products_ordered || ARRAY[[v_pv_id, v_qty]];
             -- In case of an exception in this subtransaction, the latest line will be rolled back
             -- all other lines will be committed, unless there is another error that is not handled
             EXCEPTION -- handle exceptions that pertain to this line of the order
                 WHEN check_violation THEN   
-                    RAISE NOTICE 'Failure with % for % units. Out of inventory', p_line_info[v_i][1], p_line_info[v_i][2];
+                    RAISE NOTICE 
+                        'Failure with % for % units. Out of inventory', 
+                        p_line_info[v_i][1], p_line_info[v_i][2];
             END;
     END LOOP;     
     RETURN v_products_ordered;
@@ -406,8 +409,6 @@ SELECT sf_add_lines_to_sales_order AS committed_lines
 
 SELECT * FROM inventory_request;    
 
-truncate inventory_request;
-SHOW max_worker_processes;
 
 
 --------
