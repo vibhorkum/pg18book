@@ -10,7 +10,7 @@ services:
     shm_size: 128mb
     volumes:
       # Persistent data storage
-      - pg_data:/var/lib/postgresql/data
+      # - pg_data:/var/lib/postgresql/data
       # Log storage
       - pg_logs:/var/log/postgresql
       # Optional: custom configuration files
@@ -31,7 +31,7 @@ services:
       
       # Connection and Worker Settings
       PG_MAX_CONNECTIONS: 100
-      PG_MAX_WORKER_PROCESSES: 8
+      PG_MAX_WORKER_PROCESSES: 20
       PG_MAX_PARALLEL_WORKERS: 8
       PG_MAX_PARALLEL_WORKERS_PER_GATHER: 2
       PG_MAX_PARALLEL_MAINTENANCE_WORKERS: 2
