@@ -1,4 +1,9 @@
 
+/*
+
+Section PL/pgSQL: Control Structures
+
+*/
 DO 
 $$
 DECLARE x INTEGER := 4;
@@ -14,6 +19,7 @@ END
 $$;
 
 -- Simple CASE
+
 DO 
 $$
 DECLARE x INTEGER := 4;
@@ -30,6 +36,7 @@ END
 $$;
 
 -- Searched CASE
+
 DO 
 $$
 DECLARE x INTEGER := 4;
@@ -114,10 +121,6 @@ DECLARE
     v_new_price NUMERIC;
     v_old_price NUMERIC;
 BEGIN
-    --- update all currently active prices by 3%
-    UPDATE product_variant_price
-        SET price = price + 0.03 * price
-        WHERE current = TRUE;
     -- find all the current product prices that are close to the round number
     -- and adjust them to 0.99
     FOR v_product_variant_price_record 
@@ -125,12 +128,7 @@ BEGIN
         (SELECT * FROM product_variant_price 
             WHERE 
                 current = TRUE
-            AND (
-                    (price - TRUNC (price)) > .70 
-                    OR 
-                    (price - TRUNC (price)) < .10
-                )
-        )
+            AND (price - TRUNC (price)) > .70)
         LOOP
             UPDATE product_variant_price 
                 SET price = TRUNC (price) + 0.99
@@ -152,12 +150,13 @@ BEGIN
     GET DIAGNOSTICS v_row_count = ROW_COUNT;
     GET DIAGNOSTICS v_OID = PG_ROUTINE_OID;
     GET DIAGNOSTICS v_call_stack = PG_CONTEXT;
+    RAISE NOTICE 'Routine OID %', v_OID;
+    RAISE NOTICE 'Call stack: %', v_call_stack;
     IF FOUND THEN 
         RAISE NOTICE 'Query successful. Found % rows', v_row_count;
     ELSE 
         RAISE NOTICE 'Nothing found';
     END IF;
-    RAISE NOTICE E'--- Call Stack ---\n%', v_call_stack;
 END;
 $$;
 
@@ -246,7 +245,7 @@ CREATE OR REPLACE TRIGGER tr_track_last_update_inventory
 
 /*
 
-Section: Subtransactions
+Section: PL/pgSQL, Transactions and Subtransactions
 
 */
 
@@ -309,13 +308,6 @@ SELECT sf_add_lines_to_sales_order AS committed_lines
 /*
 
 Section: pg_background
-Running with 
-east_ecommerce_data=# SHOW max_worker_processes;
- max_worker_processes 
-----------------------
- 20
-(1 row)
-
 
 */
 
@@ -337,6 +329,8 @@ CREATE OR REPLACE PROCEDURE record_inventory_request (
 AS
 $$
 BEGIN
+    RAISE NOTICE 'Recording inventory request for product variant % with sales transaction % and qty %', 
+        p_product_variant_id, p_sales_transaction_id, p_qty;
     INSERT INTO inventory_request 
         (time, product_variant_id,sales_transaction_id, qty)
     VALUES (CLOCK_TIMESTAMP(), p_product_variant_id,p_sales_transaction_id, p_qty);
@@ -355,6 +349,9 @@ DECLARE
     v_pv_id INTEGER;
     v_qty INTEGER;
     v_price NUMERIC;
+    v_background_command TEXT; -- command to run in the background
+    v_bg_worker_pid      INTEGER; -- Variable to hold the background worker's PID
+    v_bg_result          TEXT; -- Variable to hold the result from the background worker
 BEGIN
     -- iterate through all the lines and commit the inventory
     FOR v_i IN 1.. ARRAY_LENGTH(p_line_info, 1) LOOP
@@ -362,22 +359,27 @@ BEGIN
             v_pv_id := p_line_info[v_i][1];
             v_qty := p_line_info[v_i][2];
             v_price := p_line_info[v_i][3];
-            -- document the inventory request -- trying different things
-
-            -- 1) this creates the record for all successful transactions (as expected)
-            -- CALL record_inventory_request (v_pv_id, p_sales_transaction_id, v_qty);
-            
-            -- 2) this errors out with message column "v_pv_id" does not exist
-            -- SELECT * FROM pg_background_result(pg_background_launch('CALL record_inventory_request (v_pv_id, p_sales_transaction_id, v_qty)')) as (result TEXT);
-
-            -- 3) does not add any records in the inventory request table 
-            -- PERFORM pg_background_launch('CALL record_inventory_request (v_pv_id, p_sales_transaction_id, v_qty)');
-            -- add the sales transaction line
+            -- Use pg_background to record the inventory request in the background
+            -- 1) Build the command string for the background worker
+            v_background_command := format(
+                'CALL record_inventory_request(%L, %L, %L)',
+                v_pv_id, 
+                p_sales_transaction_id, 
+                v_qty
+            );
+            -- 2) Launch the worker and capture its PID
+            v_bg_worker_pid := pg_background_launch(v_background_command);
+            -- 3) Capture any results (including errors) and detach the background process 
+            SELECT result INTO v_bg_result FROM pg_background_result(v_bg_worker_pid) AS (result TEXT);
+            -- Print the result from the background worker
+            RAISE DEBUG 'Background worker result: %', v_bg_result;
+            -- 4) Now we can proceed with the main transaction
+            -- 4.a) add the sales transaction line
             INSERT INTO sales_transaction_line 
                 (sales_transaction_id, product_variant_id, qty, price_at_sale)
                 VALUES 
                 (p_sales_transaction_id,v_pv_id,v_qty,v_price);
-            -- commit the inventory
+            -- 4.b) commit the inventory
             UPDATE product_variant_inventory SET qty = qty - v_qty
                 WHERE product_variant_id = v_pv_id;
             RAISE NOTICE 'Success with order % for % units. Sufficient inventory on hand',
@@ -396,6 +398,7 @@ BEGIN
 END $$ LANGUAGE PLPGSQL;   
 
 
+TRUNCATE inventory_request; 
 -- Invoke the function defined above, after resetting the inventory level and the specific sales transaction
 -- remove all other sales transaction lines from sales transaction to simplify output
 DELETE FROM sales_transaction_line WHERE sales_transaction_id = 'east_5316';
@@ -410,38 +413,60 @@ SELECT sf_add_lines_to_sales_order AS committed_lines
 SELECT * FROM inventory_request;    
 
 
-
---------
 /*
 
-Toy example for pg_backgroundworker
+Section PL/Python
 
 */
 
-CREATE TABLE background_test (id INTEGER, time TIMESTAMP);
+\c ecommerce_reference_data
 
-SELECT * FROM background_test;
+CREATE EXTENSION plpython3u;
 
-INSERT INTO background_test (id, time) values (1, CURRENT_TIMESTAMP);
-SELECT pg_sleep(5);
-INSERT INTO background_test (id, time) values (1, CURRENT_TIMESTAMP);
-SELECT pg_sleep(5);
-INSERT INTO background_test (id, time) values (1, CURRENT_TIMESTAMP);
-SELECT pg_sleep(5);
-
-CREATE OR REPLACE PROCEDURE test_pg_background (p_ctr INTEGER DEFAULT 5)
+CREATE OR REPLACE PROCEDURE product_reference.ensure_description_uppercase()
 AS $$
-BEGIN
-TRUNCATE background_test;
-FOR v_i IN 1 .. p_ctr LOOP
-    INSERT INTO background_test (id, time) values (v_i, CLOCK_TIMESTAMP());
-    PERFORM pg_sleep(5);
-END LOOP;
-END $$ LANGUAGE PLPGSQL;
+import plpy
+rows = plpy.execute("SELECT id, description FROM product_reference.product_category")
+for row in rows:
+    desc = row['description']
+    if desc and not desc[0].isupper():
+        # Print the description that needs to be fixed
+        plpy.notice("This description needs to be fixed: %s" % desc)
+        # Capitalize the first letter of the description
+        new_desc = desc[0].upper() + desc[1:]
+        plpy.notice("Fixed: %s" % new_desc)
+        # Use % formatting and escape single quotes to create query string
+        update_sql = (
+            "UPDATE product_reference.product_category "
+            "SET description = '%s' WHERE id = %d"
+        ) % (new_desc.replace("'", "''"), row['id'])
+        plpy.execute(update_sql)
+$$ LANGUAGE plpython3u;
 
-CALL test_pg_background(5);
-SELECT * FROM background_test;
+CALL product_reference.ensure_description_uppercase();
 
-SELECT * FROM pg_background_result(pg_background_launch('CALL test_pg_background(5)')) AS (result TEXT);
+CREATE OR REPLACE PROCEDURE product_reference.ensure_description_uppercase_cursor()
+AS $$
+import plpy
+cursor = plpy.cursor("SELECT id, description FROM product_reference.product_category")
+while True:
+    rows = cursor.fetch(5)  # fetch 5 rows at a time
+    if not rows:
+        break
+    for row in rows:
+        desc = row['description']
+        if desc and not desc[0].isupper():
+            # Print the description that needs to be fixed
+            plpy.notice("This description needs to be fixed: %s" % desc)
+            # Capitalize the first letter of the description
+            new_desc = desc[0].upper() + desc[1:]
+            plpy.notice("Fixed: %s" % new_desc)
+            # Use % formatting and escape single quotes to create query string
+            update_sql = (
+                "UPDATE product_reference.product_category "
+                "SET description = '%s' WHERE id = %d"
+            ) % (new_desc.replace("'", "''"), row['id'])
+            plpy.execute(update_sql)
+$$ LANGUAGE plpython3u;
 
-SELECT pg_background_launch('CALL test_pg_background(5)');
+CALL product_reference.ensure_description_uppercase_cursor();

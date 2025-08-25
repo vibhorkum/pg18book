@@ -16,3 +16,4 @@ INSERT INTO product_reference.product_category (id, label, description)
         (10, 'Jackets', 'Suit coats, leather jackets, sports coats'), -- was 5
         (11, 'Coats', 'Trench coats, duffle coats') -- was 6
     ON CONFLICT (id) DO NOTHING;
+    

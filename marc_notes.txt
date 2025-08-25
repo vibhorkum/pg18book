@@ -119,3 +119,30 @@ Not done yet: define security model
 Junglinster2025
 
 pgbook-aws.chggugaees57.us-east-2.rds-preview.amazonaws.com
+
+
+Python3 install in Docker Container
+
+python3 --version
+
+pip3 --version
+
+python3 -m pip install --upgrade pip
+
+which python3
+
+which pip3
+
+pip3 show openai
+
+To be sure you’re installing into the right environment, always run:
+
+python3 -m pip install openai
+
+Test the import
+
+python3
+>>>import openai
+>>>print(openai.__version__)
+
+
