@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: vibhorkumar123/pg18-vector:v2.0
+    image: vibhorkumar123/pg18-vector:v2.2
     container_name: pg18book
     ports:
       - "5432:5432"
