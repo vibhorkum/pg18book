@@ -1,9 +1,17 @@
+/* ============================================================================
+
+                        Code samples for Chapter 6
+
+============================================================================ */ 
+
+
 
 /*
 
 Section PL/pgSQL: Control Structures
 
 */
+
 DO 
 $$
 DECLARE x INTEGER := 4;
@@ -71,7 +79,8 @@ BEGIN
 END        
 $$;
 
--- FOR ... LOOP
+-- FOR .. LOOP
+-- iterates over an integer range. 
 
 DO 
 $$
@@ -86,8 +95,8 @@ $$;
 
 
 -- FOR EACH ... LOOP
-
 -- looping through a one-dimensional array 
+
 DO 
 $$
 DECLARE 
@@ -113,7 +122,8 @@ BEGIN
 END        
 $$;
 
--- increasing the prices for all products by 3%
+-- FOR ... IN SELECT ... LOOP
+-- looping through the result set of a query
 
 DO $$
 DECLARE 
@@ -140,6 +150,11 @@ BEGIN
 END;
 $$;
 
+/*
+ Section: Diagnostics to Understand the Most Recent Query
+
+*/
+
 DO $$
 DECLARE
     v_call_stack TEXT;
@@ -160,9 +175,14 @@ BEGIN
 END;
 $$;
 
--------------------------------------------------------------------------------
 
--- Exception handling
+/* 
+
+Section: Exception Handling and Stacked Diagnostics
+
+*/
+
+-- simple exception handler
 
 DO $$
 BEGIN
@@ -173,7 +193,7 @@ BEGIN
 END;
 $$;
 
-
+-- A more sophisticated handler with stacked diagnostics
 DO $$
     DECLARE 
     v_RETURNED_SQLSTATE TEXT; 
@@ -200,6 +220,7 @@ BEGIN
 END;
 $$;
 
+-- raising an exception explicitly
 
 DO $$
 BEGIN
@@ -221,8 +242,6 @@ ALTER TABLE product_variant_inventory
     ADD COLUMN last_update_timestamp TIMESTAMP,
     ADD COLUMN last_update_user TEXT,
     ADD COLUMN prior_value JSONB;
-
-
 
 -- defining a before trigger for insert and update that tracks the changes
 
@@ -307,7 +326,7 @@ SELECT sf_add_lines_to_sales_order AS committed_lines
 
 /*
 
-Section: pg_background
+Section: pg_background – Breaking Out of the Transaction Constraints
 
 */
 
@@ -397,6 +416,7 @@ BEGIN
     RETURN v_products_ordered;
 END $$ LANGUAGE PLPGSQL;   
 
+-- runing the sample procedure to record inventory requests
 
 TRUNCATE inventory_request; 
 -- Invoke the function defined above, after resetting the inventory level and the specific sales transaction
@@ -413,6 +433,36 @@ SELECT sf_add_lines_to_sales_order AS committed_lines
 SELECT * FROM inventory_request;    
 
 
+/* 
+
+Section: plpgsql_check – a Powerful Linter for PL/pgSQL code
+
+*/
+
+CREATE EXTENSION plpgsql_check;
+
+CREATE OR REPLACE FUNCTION product_reference.insert_brand_test_linter
+    (p_id INTEGER, p_label TEXT, p_description TEXT) RETURNS TEXT
+AS
+$$
+DECLARE
+    v_test_var INTEGER :=0; -- unused variable to test linter
+BEGIN
+    IF current_date < '2025-12-31' THEN
+        INSERT INTO product_reference.product_brand (id, label, description)
+            VALUES (p_id, p_label, p_description);
+    ELSE
+        INSERT INTO product_reference.product_brand (id, label, description)
+            VALUES (p_id, 'All new: ' || p_description);
+    END IF;
+    RETURN 'Done';
+END $$ LANGUAGE plpgsql;
+
+-- running the sample function
+SELECT insert_brand_test_linter (100, 'Brand X', 'A new brand');
+
+-- running the linter
+SELECT plpgsql_check_function('product_reference.insert_brand_test_linter', fatal_errors := false);
 /*
 
 Section PL/Python
@@ -470,3 +520,38 @@ while True:
 $$ LANGUAGE plpython3u;
 
 CALL product_reference.ensure_description_uppercase_cursor();
+
+-- exception handling in PL/Python
+
+CREATE OR REPLACE FUNCTION product_reference.insert_product_category(
+    p_id INTEGER,
+    p_label TEXT,
+    p_description TEXT
+)
+RETURNS TEXT
+AS $$
+import plpy
+from plpy import spiexceptions
+try:
+    sql = (
+        "INSERT INTO product_reference.product_category (id, label, description) "
+        "VALUES (%d, '%s', '%s')"
+    ) % (
+        p_id,
+        p_label.replace("'", "''"),
+        p_description.replace("'", "''")
+    )
+    plpy.execute(sql)
+    return "Insert successful"
+except spiexceptions.UniqueViolation as e:
+    return "Unique constraint violation: " + str(e)
+except spiexceptions.PrimaryKeyViolation as e:
+    return "Unique constraint violation: " + str(e)
+except plpy.SPIError as e:
+    return "other error, SQLSTATE %s" % e.sqlstate
+else:
+        return "Unknown error: " + str(e)
+$$ LANGUAGE plpython3u;
+
+-- running the sample function
+SELECT product_reference.insert_product_category(14, 'Blouses', 'long sleeve and short sleeve shirts');
