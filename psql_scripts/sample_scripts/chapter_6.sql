@@ -261,6 +261,20 @@ CREATE OR REPLACE TRIGGER tr_track_last_update_inventory
     BEFORE INSERT OR UPDATE
     ON product_variant_inventory FOR EACH ROW EXECUTE FUNCTION tr_inventory_last_update(); 
   
+-- testing the trigger with an insert
+-- the inventory value from the original data set is 94
+-- so this insert will show NULL in prior_value
+UPDATE product_variant_inventory SET qty = 93 WHERE product_variant_id = 1;
+UPDATE product_variant_inventory SET qty = 90 WHERE product_variant_id = 1;
+
+SELECT 
+    product_variant_id id, 
+    qty, 
+    DATE(last_update_timestamp) date, 
+    last_update_user user, 
+    JSONB_PRETTY (prior_value) AS prior_value
+FROM product_variant_inventory WHERE product_variant_id = 1;
+
 
 /*
 
