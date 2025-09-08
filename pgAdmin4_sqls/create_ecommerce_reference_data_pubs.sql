@@ -24,7 +24,7 @@ DROP PUBLICATION IF EXISTS us_product_variant_price_publication;
 
 -- \echo '--> Creating publication for core product tables...'
 CREATE PUBLICATION us_product_publication
-    FOR TABLE product_category, product_brand, product, product_variant;
+    FOR TABLE category, brand, product, product_variant;
 
 -- \echo '--> Creating publication for row-filtered US product variant prices...'
 CREATE PUBLICATION us_product_variant_price_publication

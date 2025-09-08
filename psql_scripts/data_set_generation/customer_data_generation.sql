@@ -8,7 +8,7 @@
 
 \c us_ecommerce_data
 
-SET SEARCH_PATH TO api, product_reference, inventory, us_customer, us_sales; -- make sure path is available in current session
+SET SEARCH_PATH TO api, product, inventory, us_customer, us_sales; -- make sure path is available in current session
 
 CREATE SCHEMA data_generation;
 

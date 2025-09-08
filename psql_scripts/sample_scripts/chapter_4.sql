@@ -30,13 +30,13 @@ CREATE USER jane_doe
 
 -------------------------------------------------------------------------------
 REVOKE CONNECT ON DATABASE ecommerce_reference_data FROM PUBLIC; 
-REVOKE USAGE ON SCHEMA internal,product_reference, api FROM PUBLIC; 
+REVOKE USAGE ON SCHEMA internal,product, api FROM PUBLIC; 
 REVOKE EXECUTE ON PROCEDURE api.update_current_price_flags FROM PUBLIC; 
 REVOKE EXECUTE ON FUNCTION  
     api.manage_product_price,  
     api.manage_product,  
-    api.manage_product_brand,  
-    api.manage_product_category  
+    api.manage_brand,  
+    api.manage_category  
     FROM PUBLIC; 
 
 
@@ -83,11 +83,11 @@ ALTER SYSTEM SET audit.pgaudit.log ='ddl';
 -- use object-level auditing for DML on product related tables 
 GRANT INSERT, UPDATE, DELETE 
     ON  
-        product_reference.product, 
-        product_reference.product_brand, 
-        product_reference.product_category, 
-        product_reference.product_variant, 
-        product_reference.product_variant_price 
+        product.product, 
+        product.brand, 
+        product.category, 
+        product.product_variant, 
+        product.product_variant_price 
     TO auditor; 
  
 -- pgAudit does not support object-level auditing for functions or procedures 

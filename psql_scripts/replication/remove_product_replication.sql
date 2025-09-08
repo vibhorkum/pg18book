@@ -11,9 +11,9 @@
 \set subscriber_db2 'east_ecommerce_data'
 \set subscriber_db3 'central_analytics'
 
-\set sub_slot_1 'west_product_reference_data_sub'
-\set sub_slot_2 'east_product_reference_data_sub'
-\set sub_slot_3 'central_analytics_product_reference_sub'
+\set sub_slot_1 'west_product_data_sub'
+\set sub_slot_2 'east_product_data_sub'
+\set sub_slot_3 'central_analytics_product_sub'
 
 -- SET vars.sub_slot_1 TO :'sub_slot_1';
 
@@ -131,10 +131,10 @@ END$$;
 -- This can be done in the same connection to the publisher.
 
 \echo '--> Dropping publication: west_product_publication'
-DROP PUBLICATION IF EXISTS west_product_reference_publication;
+DROP PUBLICATION IF EXISTS west_product_publication;
 
 \echo '--> Dropping publication: east_product_publication'
-DROP PUBLICATION IF EXISTS east_product_reference_publication;
+DROP PUBLICATION IF EXISTS east_product_publication;
 
 \echo '--> Dropping publication: central_product_publication'
 DROP PUBLICATION IF EXISTS central_analytics_product_publication;

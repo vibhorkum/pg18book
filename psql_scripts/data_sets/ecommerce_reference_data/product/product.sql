@@ -1,4 +1,4 @@
-INSERT INTO product_reference.product (id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename)
+INSERT INTO product.product (id, category_id, brand_id, label, shortdescription, longdescription, image_filename)
     VALUES
       --- dress shirt Gap
       (1,2,1, 'Dress shirt by The Gap','Classic mens dress shirt from The Gap —tailored fit, premium cotton, versatile for work or formal wear.',

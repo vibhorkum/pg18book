@@ -34,11 +34,11 @@ ALTER SYSTEM SET audit.pgaudit.log ='ddl';
 -- use object-level auditing for DML on product related tables
 GRANT INSERT, UPDATE, DELETE
     ON 
-        product_reference.product,
-        product_reference.product_brand,
-        product_reference.product_category,
-        product_reference.product_variant,
-        product_reference.product_variant_price
+        product.product,
+        product.brand,
+        product.category,
+        product.product_variant,
+        product.product_variant_price
     TO auditor;
 
 -- pgAudit does not support object-level auditing for functions or procedures

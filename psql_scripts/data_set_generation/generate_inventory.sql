@@ -14,7 +14,7 @@ DECLARE
     v_random_qty INTEGER;
 BEGIN
     TRUNCATE product_variant_inventory;
-    FOR v_product_variant_record IN SELECT id FROM product_reference.product_variant 
+    FOR v_product_variant_record IN SELECT id FROM product.product_variant 
         LOOP
             v_random_qty := TRUNC (RANDOM() * p_maxunits);
             INSERT INTO product_variant_inventory (product_variant_id, qty)

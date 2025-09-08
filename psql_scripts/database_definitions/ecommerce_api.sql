@@ -5,7 +5,7 @@
     -- add/edit/delete/view sales_transaction
     -- add/edit/delete/view sales_transaction_line
     -- view for sales by customer (full and focus)
-    -- views for product_brand, product_category, product_variant, product_variant_price
+    -- views for brand, category, product_variant, product_variant_price
 -- =================================================================
 
 
@@ -327,16 +327,16 @@ CREATE OR REPLACE VIEW api.sales_by_customer AS
         JOIN product_variant pv ON pv.id = stl.product_variant_id
         JOIN product p ON pv.product_id = p.id;
 
--- views for product_brand, product_category, product_variant, product_variant_price
+-- views for brand, category, product_variant, product_variant_price
 
-CREATE OR REPLACE VIEW api.vw_product_catgory AS
-    SELECT id, label, description FROM product_category;
+CREATE OR REPLACE VIEW api.vw_catgory AS
+    SELECT id, label, description FROM category;
 
-CREATE OR REPLACE VIEW api.vw_product_brand AS
-    SELECT id, label, description FROM product_brand;
+CREATE OR REPLACE VIEW api.vw_brand AS
+    SELECT id, label, description FROM brand;
 
 CREATE OR REPLACE VIEW api.vw_product AS
-    SELECT id, product_category_id, product_brand_id, label, shortdescription, longdescription, image_filename FROM product;
+    SELECT id, category_id, brand_id, label, shortdescription, longdescription, image_filename FROM product;
 
 CREATE OR REPLACE VIEW api.vw_product_variant AS
     SELECT id, product_id, attributes, upc FROM product_variant;
