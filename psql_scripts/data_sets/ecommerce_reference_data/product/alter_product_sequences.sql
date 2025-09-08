@@ -4,11 +4,11 @@
 
 
 
-ALTER SEQUENCE product_brand_id_seq START 10000;
-ALTER SEQUENCE product_brand_id_seq RESTART;
+ALTER SEQUENCE brand_id_seq START 10000;
+ALTER SEQUENCE brand_id_seq RESTART;
 
-ALTER SEQUENCE product_category_id_seq START 10000;
-ALTER SEQUENCE product_category_id_seq RESTART;
+ALTER SEQUENCE category_id_seq START 10000;
+ALTER SEQUENCE category_id_seq RESTART;
 
 ALTER SEQUENCE product_id_seq START 10000;
 ALTER SEQUENCE product_id_seq RESTART;

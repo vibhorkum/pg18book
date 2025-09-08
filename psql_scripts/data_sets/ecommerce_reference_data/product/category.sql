@@ -1,6 +1,6 @@
 
 
-INSERT INTO product_reference.product_category (id, label, description)
+INSERT INTO product.category (id, label, description)
     VALUES
         (1, 'Pants', 'long trousers'),
         (2, 'Shirts', 'long sleeve and short sleeve shirts'),

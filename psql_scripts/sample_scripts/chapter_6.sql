@@ -455,7 +455,7 @@ Section: plpgsql_check – a Powerful Linter for PL/pgSQL code
 
 CREATE EXTENSION plpgsql_check;
 
-CREATE OR REPLACE FUNCTION product_reference.insert_brand_test_linter
+CREATE OR REPLACE FUNCTION product.insert_brand_test_linter
     (p_id INTEGER, p_label TEXT, p_description TEXT) RETURNS TEXT
 AS
 $$
@@ -463,10 +463,10 @@ DECLARE
     v_test_var INTEGER :=0; -- unused variable to test linter
 BEGIN
     IF current_date < '2025-12-31' THEN
-        INSERT INTO product_reference.product_brand (id, label, description)
+        INSERT INTO product.brand (id, label, description)
             VALUES (p_id, p_label, p_description);
     ELSE
-        INSERT INTO product_reference.product_brand (id, label, description)
+        INSERT INTO product.brand (id, label, description)
             VALUES (p_id, 'All new: ' || p_description);
     END IF;
     RETURN 'Done';
@@ -476,7 +476,7 @@ END $$ LANGUAGE plpgsql;
 SELECT insert_brand_test_linter (100, 'Brand X', 'A new brand');
 
 -- running the linter
-SELECT plpgsql_check_function('product_reference.insert_brand_test_linter', fatal_errors := false);
+SELECT plpgsql_check_function('product.insert_brand_test_linter', fatal_errors := false);
 /*
 
 Section PL/Python
@@ -487,10 +487,10 @@ Section PL/Python
 
 CREATE EXTENSION plpython3u;
 
-CREATE OR REPLACE PROCEDURE product_reference.ensure_description_uppercase()
+CREATE OR REPLACE PROCEDURE product.ensure_description_uppercase()
 AS $$
 import plpy
-rows = plpy.execute("SELECT id, description FROM product_reference.product_category")
+rows = plpy.execute("SELECT id, description FROM product.category")
 for row in rows:
     desc = row['description']
     if desc and not desc[0].isupper():
@@ -501,18 +501,18 @@ for row in rows:
         plpy.notice("Fixed: %s" % new_desc)
         # Use % formatting and escape single quotes to create query string
         update_sql = (
-            "UPDATE product_reference.product_category "
+            "UPDATE product.category "
             "SET description = '%s' WHERE id = %d"
         ) % (new_desc.replace("'", "''"), row['id'])
         plpy.execute(update_sql)
 $$ LANGUAGE plpython3u;
 
-CALL product_reference.ensure_description_uppercase();
+CALL product.ensure_description_uppercase();
 
-CREATE OR REPLACE PROCEDURE product_reference.ensure_description_uppercase_cursor()
+CREATE OR REPLACE PROCEDURE product.ensure_description_uppercase_cursor()
 AS $$
 import plpy
-cursor = plpy.cursor("SELECT id, description FROM product_reference.product_category")
+cursor = plpy.cursor("SELECT id, description FROM product.category")
 while True:
     rows = cursor.fetch(5)  # fetch 5 rows at a time
     if not rows:
@@ -527,17 +527,17 @@ while True:
             plpy.notice("Fixed: %s" % new_desc)
             # Use % formatting and escape single quotes to create query string
             update_sql = (
-                "UPDATE product_reference.product_category "
+                "UPDATE product.category "
                 "SET description = '%s' WHERE id = %d"
             ) % (new_desc.replace("'", "''"), row['id'])
             plpy.execute(update_sql)
 $$ LANGUAGE plpython3u;
 
-CALL product_reference.ensure_description_uppercase_cursor();
+CALL product.ensure_description_uppercase_cursor();
 
 -- exception handling in PL/Python
 
-CREATE OR REPLACE FUNCTION product_reference.insert_product_category(
+CREATE OR REPLACE FUNCTION product.insert_category(
     p_id INTEGER,
     p_label TEXT,
     p_description TEXT
@@ -548,7 +548,7 @@ import plpy
 from plpy import spiexceptions
 try:
     sql = (
-        "INSERT INTO product_reference.product_category (id, label, description) "
+        "INSERT INTO product.category (id, label, description) "
         "VALUES (%d, '%s', '%s')"
     ) % (
         p_id,
@@ -568,4 +568,4 @@ else:
 $$ LANGUAGE plpython3u;
 
 -- running the sample function
-SELECT product_reference.insert_product_category(14, 'Blouses', 'long sleeve and short sleeve shirts');
+SELECT product.insert_category(14, 'Blouses', 'long sleeve and short sleeve shirts');

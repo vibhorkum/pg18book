@@ -1,6 +1,6 @@
 
 
-INSERT INTO product_reference.product_variant_price VALUES
+INSERT INTO product.product_variant_price VALUES
 	(1, 112, 1.15, '[2024-01-01,2024-07-01)', false),
 	(2, 112, 1.19, '[2024-07-01,2025-01-01)', false),
 	(3, 112, 1.22, '[2025-01-01,2025-07-01)', false),

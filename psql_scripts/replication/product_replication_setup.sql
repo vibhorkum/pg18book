@@ -16,9 +16,9 @@
 -- this needs to change
 \set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data user=postgres password=postgres'
 
-\set sub_slot_1 'west_product_reference_data_sub'
-\set sub_slot_2 'east_product_reference_data_sub'
-\set sub_slot_3 'central_analytics_product_reference_sub'
+\set sub_slot_1 'west_product_data_sub'
+\set sub_slot_2 'east_product_data_sub'
+\set sub_slot_3 'central_analytics_product_sub'
 
 \echo '*** Replication Setup Script Started ***'
 
@@ -38,12 +38,12 @@ DROP PUBLICATION IF EXISTS central_analytics_product_publication;
 \echo '--> Creating the ecommerce publication for product reference tables...'
 CREATE PUBLICATION ecommerce_product_publication
     FOR TABLE 
-        product_reference.product_category, 
-        product_reference.product_brand, 
-        product_reference.product, 
-        product_reference.product_variant,
+        product.category, 
+        product.brand, 
+        product.product, 
+        product.product_variant,
         --- send only rows that pertain are currently active
-        product_reference.product_variant_price WHERE (current = true);
+        product.product_variant_price WHERE (current = true);
 
 
 -- publishing the reference data to central analytics
@@ -51,12 +51,12 @@ CREATE PUBLICATION ecommerce_product_publication
 \echo '--> Creating the central analytics publication for product reference tables...'
 CREATE PUBLICATION central_analytics_product_publication
     FOR TABLE 
-        product_reference.product_category, 
-        product_reference.product_brand, 
-        product_reference.product, 
-        product_reference.product_variant,
+        product.category, 
+        product.brand, 
+        product.product, 
+        product.product_variant,
         --- send all rows
-        product_reference.product_variant_price;
+        product.product_variant_price;
 
 \echo '--> Verification: Listing tables in publications...'
 SELECT pubname, schemaname, tablename FROM pg_publication_tables;

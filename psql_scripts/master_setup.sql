@@ -93,11 +93,11 @@ $$;
 
 \c ecommerce_reference_data
 
-\i data_sets/ecommerce_reference_data/product_reference/product_brand.sql
-\i data_sets/ecommerce_reference_data/product_reference/product_category.sql
-\i data_sets/ecommerce_reference_data/product_reference/product.sql
-\i data_sets/ecommerce_reference_data/product_reference/product_variant.sql
-\i data_sets/ecommerce_reference_data/product_reference/product_variant_price.sql
+\i data_sets/ecommerce_reference_data/product/brand.sql
+\i data_sets/ecommerce_reference_data/product/category.sql
+\i data_sets/ecommerce_reference_data/product/product.sql
+\i data_sets/ecommerce_reference_data/product/product_variant.sql
+\i data_sets/ecommerce_reference_data/product/product_variant_price.sql
 
 
 
@@ -109,7 +109,7 @@ SELECT PG_SLEEP(10);
 
 --- this resets the sequences so that the API calls don't conflict
 
-\i data_sets/ecommerce_reference_data/product_reference/alter_product_reference_sequences.sql
+\i data_sets/ecommerce_reference_data/product/alter_product_sequences.sql
 
 \echo '... loading east ecommerce data for customers and sales'
 

@@ -4,9 +4,9 @@
 
 \dRs
 
-alter subscription central_analytics_product_reference_sub disable;
-alter subscription central_analytics_product_reference_sub set (slot_name = none); 
-drop subscription central_analytics_product_reference_sub ;
+alter subscription central_analytics_product_sub disable;
+alter subscription central_analytics_product_sub set (slot_name = none); 
+drop subscription central_analytics_product_sub ;
 
 alter subscription us_customer_sales_data_sub disable;
 alter subscription us_customer_sales_data_sub set (slot_name = none); 
@@ -77,7 +77,7 @@ postgres=# SELECT * FROM test;
 
 
 
-docker exec pg18book  pg_dump -h localhost -p 5432 -U postgres -t product_reference.product_variant_price -a --insert --rows-per-insert 5000 ecommerce_reference_data > test.sql
+docker exec pg18book  pg_dump -h localhost -p 5432 -U postgres -t product.product_variant_price -a --insert --rows-per-insert 5000 ecommerce_reference_data > test.sql
 
 docker exec -it pg18book_w_extensions bash
 
@@ -146,3 +146,13 @@ python3
 >>>print(openai.__version__)
 
 
+
+
+Aug 30 2025
+
+Changes to the data model:
+* add audit column to inventory model (not just the Chapter 6 example)
+* Check the price list initialisation logical
+* Remove UPC code from product_variant
+* Implement all the security mechanisms (see Chpater 4)
+  - limit access

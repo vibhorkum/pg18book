@@ -1,4 +1,4 @@
-INSERT INTO product_reference.country_of_origin (product_brand_id, alpha3_code, name)
+INSERT INTO product.country_of_origin (brand_id, alpha3_code, name)
     VALUES
         (1, 'USA', 'United States of America'), -- Gap
         (2, 'DEU', 'Germany'),                  -- Boss

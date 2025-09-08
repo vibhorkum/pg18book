@@ -8,8 +8,8 @@ CREATE PROCEDURE internal.generate_product_variant_prices ()
             DECLARE
                 v_product_record RECORD; --- this will be used to iterate over the product records
                 v_product_variant_record RECORD;
-                -- standard prices by product_category
-                v_product_category_price NUMERIC[] := ARRAY[
+                -- standard prices by category
+                v_category_price NUMERIC[] := ARRAY[
                     90,     -- (1, 'Pants', 'long trousers'),
                     29,     -- (2, 'Shirts', 'long sleeve and short sleeve shirts'),
                     35,     -- (3, 'T-Shirts', 'long sleev and short sleeve T-shirts'),
@@ -37,12 +37,12 @@ CREATE PROCEDURE internal.generate_product_variant_prices ()
                 v_current BOOLEAN DEFAULT false;
             BEGIN
                 -- iterate through all the products
-                FOR v_product_record IN SELECT p.id, pc.id AS product_category_id, pc.label AS product_category_label
-                                            FROM product_reference.product p, product_reference.product_category pc
-                                            WHERE p.product_category_id = pc.id
+                FOR v_product_record IN SELECT p.id, pc.id AS category_id, pc.label AS category_label
+                                            FROM product.product p, product.category pc
+                                            WHERE p.category_id = pc.id
                     LOOP
                         --- look up the standard price
-                        v_product_price := v_product_record.product_category_id;
+                        v_product_price := v_product_record.category_id;
                         --- randomize the price
                         v_product_price := v_product_price + (random() * .25);
                         -- iterate through all the variants for the product
@@ -59,7 +59,7 @@ CREATE PROCEDURE internal.generate_product_variant_prices ()
                                                 v_current = false;
                                         END IF;    
                                         INSERT 
-                                            INTO product_reference.product_variant_price (product_variant_id, price, validity, current)
+                                            INTO product.product_variant_price (product_variant_id, price, validity, current)
                                             VALUES (
                                                 v_product_variant_record.id,
                                                 v_inflation_adjusted_price,

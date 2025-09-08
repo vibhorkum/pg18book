@@ -49,7 +49,7 @@ CREATE TABLE product_price
 **PostgreSQL key words** are always capitalized, for example
 ```sql
 SELECT id, description 
-    FROM product_reference.product 
+    FROM product.product 
     WHERE description ILIKE '%jeans%'
     ORDER BY description ASC;
 ```
@@ -61,10 +61,10 @@ Schemas should be used to manage related concepts inside a single name space.
 
 For example
 ``` sql
-CREATE SCHEMA product_reference;
+CREATE SCHEMA product;
 
-CREATE TABLE product_reference.product_category (...);
-CREATE TABLE product_reference.product_brand ();
+CREATE TABLE product.category (...);
+CREATE TABLE product.brand ();
 ...
 
 CREATE SCHEMA sales;
@@ -126,8 +126,8 @@ Examples
 /* 
 =================================================================
 This schema define the product reference data. The tables are:
-- product_category, e.g., pants, shirts, polos, sweaters
-- product brand, e.g., Boss, Levis, The Gap, ...
+- category, e.g., pants, shirts, polos, sweaters
+- brand, e.g., Boss, Levis, The Gap, ...
 - product, e.g., a blue shirt from Boss
 - product prices with information about currency, geography and date range 
   when the pice was applicable

@@ -1,4 +1,4 @@
-INSERT INTO product_reference.product_brand (id, label, description)
+INSERT INTO product.brand (id, label, description)
     VALUES
         (1, 'Gap', 'The Gap'),
         (2, 'Boss', 'Boss'),
