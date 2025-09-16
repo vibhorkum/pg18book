@@ -9,6 +9,7 @@ This repository contains a set of SQL scripts to demonstrate a reference archite
 *   **Exclusion Constraints**: Using `GIST` to prevent overlapping price validity periods.
 *   **Stored Procedures**: Efficient data maintenance (`update_current_price_flags`) and sample data generation (`create_sales_transactions`).
 *   **`psql` Scripting**: Use of `psql` meta-commands and variables for automated setup and teardown.
+*   **AI/ML Integration**: NEW - AI database (`aidb`) with pgvector embeddings and OpenAI integration for semantic product search and recommendations.
 
 ## File Structure
 *   `reference_data.sql`: Master script to create the `ecommerce_reference_data` (publisher) database, schema, and sample data.
@@ -17,6 +18,7 @@ This repository contains a set of SQL scripts to demonstrate a reference archite
 *   `remove_replication.sql`: Script to tear down the replication configuration.
 *   `cleanup_databases.sql`: Script to drop both databases and clean up the environment.
 *   `pgAdmin4_sqls/`: Contains versions of the scripts adapted for use with the pgAdmin 4 query tool, which does not support certain `psql` meta-commands.
+*   **NEW - AI Database**: `psql_scripts/aidb_*.sql` - Scripts for creating and managing the AI database with embeddings (see `AI_DATABASE_README.md`).
 
 ## Prerequisites
 *   PostgreSQL server installed.
@@ -103,3 +105,32 @@ The scripts in the `pgAdmin4_sqls` directory are split into multiple parts becau
 
 ### 3. Setup Replication & Cleanup
 The `replication_setup.sql`, `remove_replication.sql`, and `cleanup_databases.sql` scripts from the root directory can be run, but you will need to manually handle the `\c` commands by switching connections in pgAdmin between steps. For cleanup, `/pgAdmin4_sqls/cleanup_database.sql` can be run from a connection to the `postgres` database.
+
+---
+
+## AI Database (NEW)
+
+This repository now includes an AI-powered database for semantic product search and recommendations:
+
+### Quick Start - AI Database
+```bash
+# Create AI database with embeddings
+psql -U postgres -f psql_scripts/aidb_setup.sql
+
+# Add sample data  
+psql -U postgres -f psql_scripts/aidb_data_integration.sql
+
+# Run validation tests
+psql -U postgres -f psql_scripts/aidb_validation.sql
+
+# See demo
+psql -U postgres -f psql_scripts/aidb_demo.sql
+```
+
+### AI Features
+- **Vector embeddings** with pgvector for semantic similarity search
+- **OpenAI integration** for natural language product queries  
+- **Product recommendations** based on complementary categories
+- **Chat interface** for conversational product discovery
+
+For detailed documentation, see [`AI_DATABASE_README.md`](AI_DATABASE_README.md).
