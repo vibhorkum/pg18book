@@ -60,3 +60,15 @@ DROP DATABASE IF EXISTS central_analytics;
 
 \echo '[DATABASE PREP] ==> Creating the database...'
 CREATE DATABASE central_analytics;
+
+\echo '[DATABASE PREP] ==> Preparing to drop and recreate the database aidb.'
+-- Terminate all active connections to the target database before dropping it.
+-- This is a more controlled approach than using WITH (FORCE).
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'aidb' AND pid <> pg_backend_pid();
+
+DROP DATABASE IF EXISTS aidb;
+
+\echo '[DATABASE PREP] ==> Creating the database...'
+CREATE DATABASE aidb;
