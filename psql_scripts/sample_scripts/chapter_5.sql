@@ -205,6 +205,7 @@ CREATE TABLE product.product_variant_price (
     EXCLUDE USING GIST (product_variant_id WITH =, validity WITH &&)
 );
 
+-- use the @> operator to check if the value is contained in the range
 SELECT * FROM product_variant_price 
     WHERE validity @> '2025-07-18'::date 
     AND product_variant_id = 109;
@@ -212,11 +213,9 @@ SELECT * FROM product_variant_price
 
 -------------------------------------------------------------------------------
 
+
+-- both upper and lower boundaries are included in the range
 INSERT INTO product_variant_price
-   (
-       product_variant__id, price, validity, current
-   )
+   (product_variant__id, price, validity, current)
 VALUES
-   (
-       109, 100.00, '[2025-07-01,2025-07-02]', false
-   );
+   (109, 100.00, '[2025-07-01,2025-07-02]', false);

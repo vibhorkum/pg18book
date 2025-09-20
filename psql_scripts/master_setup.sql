@@ -93,6 +93,7 @@ $$;
 
 \c ecommerce_reference_data
 
+\i data_sets/ecommerce_reference_data/product/country_of_origin.sql
 \i data_sets/ecommerce_reference_data/product/brand.sql
 \i data_sets/ecommerce_reference_data/product/category.sql
 \i data_sets/ecommerce_reference_data/product/product.sql
