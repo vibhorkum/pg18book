@@ -77,6 +77,9 @@ $$;
 \echo '.... executing database_definitions/central_analytics.sql'
 \i database_definitions/central_analytics.sql
 
+\echo '.... executing database_definitions/aidb.sql'
+\i database_definitions/aidb.sql
+
 \echo 'Databases defined'
 
 \echo 'Setting up replication ...'
@@ -92,13 +95,12 @@ $$;
 \echo '.... loading product reference data'
 
 \c ecommerce_reference_data
-
-\i data_sets/ecommerce_reference_data/product/country_of_origin.sql
 \i data_sets/ecommerce_reference_data/product/brand.sql
 \i data_sets/ecommerce_reference_data/product/category.sql
 \i data_sets/ecommerce_reference_data/product/product.sql
 \i data_sets/ecommerce_reference_data/product/product_variant.sql
 \i data_sets/ecommerce_reference_data/product/product_variant_price.sql
+\i data_sets/ecommerce_reference_data/product/country_of_origin.sql
 
 
 

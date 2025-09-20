@@ -10,11 +10,12 @@
 \set subscriber_db1 'west_ecommerce_data'
 \set subscriber_db2 'east_ecommerce_data'
 \set subscriber_db3 'central_analytics'
+\set subscriber_db4 'aidb'
 
 \set sub_slot_1 'west_product_data_sub'
 \set sub_slot_2 'east_product_data_sub'
 \set sub_slot_3 'central_analytics_product_sub'
-
+\set sub_slot_4 'aidb_product_sub'
 -- SET vars.sub_slot_1 TO :'sub_slot_1';
 
 \echo '*** Rollback Script Started ***'
@@ -64,6 +65,19 @@ ALTER SUBSCRIPTION :sub_slot_3 SET (slot_name = NONE);
 \echo '--> Dropping subscription' :'sub_slot_3' 'if it exists...'
 DROP SUBSCRIPTION IF EXISTS :sub_slot_3;
 
+\c :subscriber_db4
+\echo 'Connected to subscriber database ->' :subscriber_db4
+\echo '--> Disabling subscription' :'sub_slot_4' 'if it exists...'
+-- It's good practice to disable before dropping.
+-- And remove slot dependencies
+-- The IF EXISTS on the DROP command handles cases where it's already gone.
+ALTER SUBSCRIPTION :sub_slot_4 DISABLE;
+ALTER SUBSCRIPTION :sub_slot_4 SET (slot_name = NONE);
+
+\echo '--> Dropping subscription' :'sub_slot_4' 'if it exists...'
+DROP SUBSCRIPTION IF EXISTS :sub_slot_4;
+
+
 \echo '--> Subscriptions dropped.'
 
 -- =================================================================
@@ -73,7 +87,7 @@ DROP SUBSCRIPTION IF EXISTS :sub_slot_3;
 SET vars.sub_slot_1 TO :'sub_slot_1';
 SET vars.sub_slot_2 TO :'sub_slot_2';
 SET vars.sub_slot_3 TO :'sub_slot_3';
-
+SET vars.sub_slot_4 TO :'sub_slot_4';
 
 \echo 'Connected to publisher database ->' :publisher_db1
 
@@ -122,6 +136,22 @@ BEGIN
     END IF;
 END$$;
 
+-- Drop the replication slot for the fourth subscription, if it exists.
+-- A DO block is used to conditionally call the drop function.
+DO $$
+DECLARE
+        sub_slot_4 TEXT := current_setting('vars.sub_slot_4');
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = sub_slot_4) THEN
+        RAISE NOTICE  '--> Dropping replication slot: %', sub_slot_4;
+        -- Note: pg_drop_replication_slot is a function, not standard DDL.
+        PERFORM pg_drop_replication_slot(sub_slot_4);
+    ELSE
+        RAISE NOTICE '--> Replication slot : % does not exist. Skipping.', sub_slot_4;
+    END IF;
+END$$;
+
+
 \echo '--> Replication slots have been dropped.'
 
 
@@ -138,6 +168,9 @@ DROP PUBLICATION IF EXISTS east_product_publication;
 
 \echo '--> Dropping publication: central_product_publication'
 DROP PUBLICATION IF EXISTS central_analytics_product_publication;
+
+\echo '--> Dropping publication: ecommerce_product_publication'
+DROP PUBLICATION IF EXISTS ecommerce_product_publication;
 
 \echo '--> Publications dropped.'
 

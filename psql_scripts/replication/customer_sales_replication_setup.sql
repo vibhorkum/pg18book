@@ -87,7 +87,7 @@ CREATE SUBSCRIPTION :sub_slot_5
 SET vars.slot_4 TO :'sub_slot_4';
 
 \echo 'Connected back to publisher to manage replication slots...'
-
+COMMIT;
 -- Conditionally create the  slot to avoid errors on re-runs
 DO $$
 DECLARE
@@ -104,10 +104,11 @@ END$$;
 
 \c :publisher_db3
 SET vars.slot_5 TO :'sub_slot_5';
-
+COMMIT;
 \echo 'Connected back to publisher % to manage replication slots' , :publisher_db3
 
 -- Conditionally create the  slot to avoid errors on re-runs
+COMMIT;
 DO $$
 DECLARE
   sub_slot_5 TEXT := current_setting('vars.slot_5');

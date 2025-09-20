@@ -11,6 +11,7 @@
 \set subscriber_db1 'west_ecommerce_data'
 \set subscriber_db2 'east_ecommerce_data'
 \set subscriber_db3 'central_analytics'
+\set subscriber_db4 'aidb'
 
 
 -- this needs to change
@@ -19,6 +20,7 @@
 \set sub_slot_1 'west_product_data_sub'
 \set sub_slot_2 'east_product_data_sub'
 \set sub_slot_3 'central_analytics_product_sub'
+\set sub_slot_4 'aidb_product_sub'
 
 \echo '*** Replication Setup Script Started ***'
 
@@ -103,6 +105,18 @@ CREATE SUBSCRIPTION :sub_slot_3
     PUBLICATION central_analytics_product_publication
     WITH (connect = false); -- connect=false is essential for same-server setup    
 
+\c :subscriber_db4
+
+\echo 'Connected to subscriber database ->' :subscriber_db4
+
+\echo '--> Dropping old subscriptions if they exist...'
+DROP SUBSCRIPTION IF EXISTS :sub_slot_4;
+
+\echo '--> Creating subscription for core reference data...'
+CREATE SUBSCRIPTION :sub_slot_4
+    CONNECTION :'publisher_conn_string1'
+    PUBLICATION central_analytics_product_publication
+    WITH (connect = false); -- connect=false is essential for same-server setup
 -- =================================================================
 --  Step 3: Create Replication Slots on the Publisher
 -- =================================================================
@@ -111,6 +125,7 @@ CREATE SUBSCRIPTION :sub_slot_3
 SET vars.slot_1 TO :'sub_slot_1';
 SET vars.slot_2 TO :'sub_slot_2';
 SET vars.slot_3 TO :'sub_slot_3';
+SET vars.slot_4 TO :'sub_slot_4';
 
 \echo 'Connected back to publisher to manage replication slots...'
 
@@ -152,6 +167,19 @@ BEGIN
         RAISE NOTICE '--> Replication slot % already exists. Skipping creation.', sub_slot_3;
     END IF;
 END$$;
+
+-- Conditionally create the fourth slot to avoid errors on re-runs
+DO $$
+DECLARE
+  sub_slot_4 TEXT := current_setting('vars.slot_4');
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = sub_slot_4) THEN
+        RAISE NOTICE '--> Creating replication slot: %', sub_slot_4;
+        PERFORM pg_create_logical_replication_slot(sub_slot_4, 'pgoutput');
+    ELSE
+        RAISE NOTICE '--> Replication slot % already exists. Skipping creation.', sub_slot_4;
+    END IF;
+END$$;
 -- ================================================================================
 --  Step 4: Enable and Refresh Product Reference Subscriptions on the Subscriber
 -- ================================================================================
@@ -177,6 +205,13 @@ ALTER SUBSCRIPTION :sub_slot_2 REFRESH PUBLICATION;
 ALTER SUBSCRIPTION :sub_slot_3 ENABLE;
 ALTER SUBSCRIPTION :sub_slot_3 REFRESH PUBLICATION;
 
+
+\c :subscriber_db4
+\echo 'Connected back to subscriber to enable and refresh data on ' :subscriber_db4
+
+\echo '--> Enabling and refreshing subscription:' :'sub_slot_4'
+ALTER SUBSCRIPTION :sub_slot_4 ENABLE;
+ALTER SUBSCRIPTION :sub_slot_4 REFRESH PUBLICATION;
 
 
 \echo '*** Script Finished Successfully ***'
