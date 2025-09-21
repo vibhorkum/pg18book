@@ -1,27 +1,37 @@
-# PostgreSQL E-commerce Sample Data
+# PostgreSQL E-commerce and AI Sample Database
 
-This repository contains a set of SQL scripts to demonstrate a reference architecture for an e-commerce platform using PostgreSQL. The setup includes a central "reference" database and a regional "subscriber" database, showcasing features like logical replication, advanced data types, and data maintenance procedures.
+This repository contains a set of SQL scripts to demonstrate a reference architecture for an e-commerce platform using PostgreSQL, now enhanced with an AI database (`aidb`) for advanced search and analytics.
+
+The architecture includes:
+*   **`ecommerce_reference_data`**: A central publisher for master product information.
+*   **`west_ecommerce_data` & `east_ecommerce_data`**: Regional databases that subscribe to product data and manage local customers and sales.
+*   **`central_analytics`**: A data warehouse that aggregates data from all regional databases.
+*   **`aidb`**: An AI database that subscribes to `central_analytics` and `ecommerce_reference_data` to build a semantic search engine using `pgvector` and OpenAI embeddings.
+
+This project showcases a multi-layered logical replication setup, data aggregation, and the integration of vector search for AI-powered applications.
 
 ## Key Features Demonstrated
-*   **Logical Replication**: Setting up a publisher/subscriber model.
-*   **Row-Filtered Publication**: Replicating only a subset of data (e.g., prices for a specific geography).
-*   **Advanced Data Types**: `DATERANGE` for price validity, `JSONB` for product attributes, and custom `ENUM` types.
+*   **Multi-Layer Logical Replication**: A sophisticated publisher/subscriber model across four database types.
+*   **AI-Powered Semantic Search**: Using `pgvector` and OpenAI embeddings to find products based on natural language queries.
+*   **Retrieval-Augmented Generation (RAG)**: A function that uses database content to provide context to an LLM for answering questions.
+*   **Advanced Data Types**: `DATERANGE` for price validity, `JSONB` for product attributes, and `vector` for embeddings.
 *   **Exclusion Constraints**: Using `GIST` to prevent overlapping price validity periods.
-*   **Stored Procedures**: Efficient data maintenance (`update_current_price_flags`) and sample data generation (`create_sales_transactions`).
-*   **`psql` Scripting**: Use of `psql` meta-commands and variables for automated setup and teardown.
+*   **`psql` Scripting**: Comprehensive use of `psql` meta-commands and variables for fully automated setup and teardown.
 
 ## File Structure
-*   `reference_data.sql`: Master script to create the `ecommerce_reference_data` (publisher) database, schema, and sample data.
-*   `us_ecommerce_data.sql`: Master script to create the `us_ecommerce_data` (subscriber) database and its local schema.
-*   `replication_setup.sql`: Script to configure logical replication between the two databases.
-*   `remove_replication.sql`: Script to tear down the replication configuration.
-*   `cleanup_databases.sql`: Script to drop both databases and clean up the environment.
-*   `pgAdmin4_sqls/`: Contains versions of the scripts adapted for use with the pgAdmin 4 query tool, which does not support certain `psql` meta-commands.
+The project is primarily organized within the `psql_scripts/` directory:
+*   `master_setup.sql`: The main script to create all databases, schemas, and set up the entire replication topology.
+*   `master_teardown.sql`: The main script to remove all replication slots, subscriptions, and drop all databases.
+*   `database_definitions/`: Contains the individual SQL files to define the schema for each database (`ecommerce_reference_data`, `west_ecommerce_data`, `east_ecommerce_data`, `central_analytics`, and `aidb`).
+*   `data_sets/`: Contains scripts to populate the databases with sample data.
+*   `replication/`: Contains scripts that define the replication relationships between the databases (`product_replication_setup.sql` and `customer_sales_replication_setup.sql`).
+*   `product_pictures/`: Contains product images and prompts used for generating embeddings.
 
 ## Prerequisites
-*   PostgreSQL server installed.
+*   PostgreSQL 16 or higher installed.
 *   Superuser access to the PostgreSQL instance.
 *   `psql` command-line client.
+*   An OpenAI API key for generating embeddings and using the RAG function.
 
 ---
 
@@ -29,77 +39,71 @@ This repository contains a set of SQL scripts to demonstrate a reference archite
 This is the recommended method for a fully automated setup.
 
 ### 1. One-Time Server Configuration
-Before you begin, you must configure your PostgreSQL server for logical replication. This only needs to be done once per server instance.
+Your PostgreSQL server must be configured for logical replication. This only needs to be done once.
 
 Edit your `postgresql.conf` file to set:
 ```ini
 wal_level = logical
 ```
-Alternatively, you can run the following SQL as a superuser:
+Alternatively, run the following SQL as a superuser:
 ```sql
 ALTER SYSTEM SET wal_level = logical;
 ```
 **You must restart your PostgreSQL server for this change to take effect.**
 
-### 2. Create Databases and Schema
-The setup scripts handle database creation and connection switching automatically. Run them from your terminal using `psql`.
+### 2. Set Your OpenAI API Key
+The `aidb` database requires an OpenAI API key to generate vector embeddings. Connect to `psql` and set the key in the database configuration. **This key is stored as a server-level parameter and will persist until reset.**
 
 ```bash
-# Create the publisher database, schema, and data
-psql -U your_superuser -f reference_data.sql
+# Connect to any database as a superuser
+psql -U your_superuser -d postgres
 
-# Create the subscriber database and schema
-psql -U your_superuser -f us_ecommerce_data.sql
+-- Set the API key (replace with your actual key)
+ALTER SYSTEM SET api.openai_api_key = 'your_openai_api_key_here';
+
+-- Reload the configuration to apply the change
+SELECT pg_reload_conf();
 ```
 
-### 3. Set Up Logical Replication
-This script creates the publications on the publisher and subscriptions on the subscriber.
+### 3. Create Databases and Set Up Replication
+The master setup script handles everything: creating databases, defining schemas, populating data, and configuring all replication publications and subscriptions in the correct order.
 
 ```bash
-# Configure and start replication
-psql -U your_superuser -f replication_setup.sql
+# Run the master setup script from the root of the repository
+psql -U your_superuser -f psql_scripts/master_setup.sql
 ```
-After this step, the `product*` tables in `us_ecommerce_data` should be populated with data from `ecommerce_reference_data`. The `product_variant_price` table will only contain rows where `geography = 'US'` and `current = true`.
+After the script finishes, all databases will be created, and data will be flowing from the reference and regional databases into `central_analytics` and finally into `aidb`.
 
-### 4. (Optional) Populate Local Data
-The `us_ecommerce_data.sql` script contains commented-out sections for populating local tables (like `customer` and `product_variant_inventory`) and creating a procedure to generate sales.
+### 4. Query the AI Database
+You can now test the semantic search functionality in the `aidb`.
 
-To use them:
-1.  Connect to the `us_ecommerce_data` database: `psql -U your_superuser -d us_ecommerce_data`
-2.  Uncomment the `INSERT` statements and the `create_sales_transactions` procedure in `us_ecommerce_data.sql`.
-3.  Execute the uncommented code in your `psql` session.
-4.  You can then generate sample sales data by running: `CALL create_sales_transactions(10);`
+1.  Connect to the `aidb` database:
+    ```bash
+    psql -U your_superuser -d aidb
+    ```
+
+2.  Run a semantic search for a product. The function `api.similar_items` takes a natural language query and returns the top matching products from the catalog.
+    ```sql
+    -- Find products similar to "a blue shirt for summer"
+    SELECT * FROM api.similar_items('a blue shirt for summer', 5);
+    ```
+
+3.  Ask a question using the RAG function. This function finds relevant items and passes them to an OpenAI model to generate a human-like answer.
+    ```sql
+    -- Ask for recommendations
+    SELECT api.answer_question('What are some good options for a formal event?');
+    ```
 
 ### Cleanup
-To remove the setup, run the scripts in the following order:
+To completely remove the databases and all replication artifacts, run the master teardown script.
 
 ```bash
-# 1. Remove publications, subscriptions, and replication slots
-psql -U your_superuser -f remove_replication.sql
-
-# 2. Drop both databases
-psql -U your_superuser -f cleanup_databases.sql
+# Run the master teardown script
+psql -U your_superuser -f psql_scripts/master_teardown.sql
 ```
 
 ---
 
 ## Instructions (using pgAdmin 4)
 
-The scripts in the `pgAdmin4_sqls` directory are split into multiple parts because pgAdmin's query tool does not support `psql` commands like `\c` to switch database connections within a single script.
-
-### 1. Create the Reference Database
-1.  Connect to the default `postgres` database.
-2.  Open and run `/pgAdmin4_sqls/create_reference_database.sql`.
-3.  **Disconnect** from the `postgres` database.
-4.  **Connect** to the newly created `ecommerce_reference_data` database.
-5.  Open and run `/pgAdmin4_sqls/ecommerce_reference_data.sql` to create tables and insert data.
-
-### 2. Create the US Subscriber Database
-1.  Connect to the default `postgres` database.
-2.  Open and run `/pgAdmin4_sqls/create_us_commerce_data_database.sql`.
-3.  **Disconnect** from the `postgres` database.
-4.  **Connect** to the newly created `us_ecommerce_data` database.
-5.  Open and run `/pgAdmin4_sqls/us_commerce_data.sql` to create the table schemas.
-
-### 3. Setup Replication & Cleanup
-The `replication_setup.sql`, `remove_replication.sql`, and `cleanup_databases.sql` scripts from the root directory can be run, but you will need to manually handle the `\c` commands by switching connections in pgAdmin between steps. For cleanup, `/pgAdmin4_sqls/cleanup_database.sql` can be run from a connection to the `postgres` database.
+Due to pgAdmin's lack of support for `psql` meta-commands like `\c`, running the automated scripts is not feasible. It is highly recommended to use `psql` for this project. If you must use pgAdmin, you will need to manually execute the contents of the SQL files in the `database_definitions`, `data_sets`, and `replication` directories, ensuring you are connected to the correct database for each step. The `master_setup.sql` script can serve as a guide for the correct order of execution.
