@@ -1,0 +1,1 @@
+CALL random_inventory_increase();

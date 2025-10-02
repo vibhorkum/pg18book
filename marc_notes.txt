@@ -156,3 +156,9 @@ Changes to the data model:
 * Remove UPC code from product_variant
 * Implement all the security mechanisms (see Chpater 4)
   - limit access
+
+pgbench  -h localhost -p 5432 -d east_ecommerce_data -c 10 -n -T 60  -P 5 -f gen-inventory.sql@4 -f gen-sales-transactions.sql@1
+
+  copying files from docker container docker cp pg18book:/var/log/postgresql/ /Users/marclinster/Documents/GitHub/pgbadger_test/
+
+  pgbadger /Users/marclinster/Documents/GitHub/pgbadger_test/postgresql/postgresql-2025-09-25.log -o report1.html

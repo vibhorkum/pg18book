@@ -122,6 +122,8 @@ CREATE TABLE east_customer.customer (
     country VARCHAR(50) NOT NULL
 );
 
+CREATE INDEX idx_east_customer_lastname_firstname ON east_customer.customer(last_name, first_name);
+
 -- assign the sequence to the table/column to make sure it gets dropped with the table
 ALTER SEQUENCE east_customer.customer_seq OWNED BY east_customer.customer.id;
 
