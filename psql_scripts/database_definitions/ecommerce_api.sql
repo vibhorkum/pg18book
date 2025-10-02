@@ -313,6 +313,72 @@ $$ LANGUAGE PLPGSQL;
 CREATE OR REPLACE VIEW api.vw_sales_transaction_line AS
     SELECT id, sales_transaction_id, product_variant_id, qty, price_at_sale FROM sales_transaction_line;     
 
+
+--- procedure to create a sales transaction with lines and adjust inventory
+
+CREATE OR REPLACE PROCEDURE api.execute_sales_transaction(
+    p_customer_id TEXT, 
+    p_transaction_date DATE, IN 
+    p_array_product_variant_ids INT[], 
+    IN p_array_qtys INT[],
+    p_adjust_inventory BOOLEAN DEFAULT TRUE)
+AS
+$$
+-- check that the arrays are the same length
+-- create sales transaction for the customer and timestamp
+-- iterate through the arrays of product_variant_ids and qtys to create sales transaction lines
+-- if p_adjust_inventory is true, adjust the inventory for each product variant
+
+DECLARE
+    v_sales_transaction_id TEXT; -- the new sales transaction id
+    i INT; -- loop counter for the arrays
+    v_product_variant_price NUMERIC; -- price of the product variant
+    
+BEGIN
+    IF array_length(p_array_product_variant_ids, 1) IS DISTINCT FROM array_length(p_array_qtys, 1) THEN
+        RAISE EXCEPTION 'Arrays for product variant IDs and quantities arrays must be of the same length, cancelling transaction';
+    END IF;
+    
+    INSERT INTO sales_transaction (customer_id, transaction_date)
+    VALUES (p_customer_id, p_transaction_date)
+    RETURNING id INTO v_sales_transaction_id;
+    RAISE DEBUG 'Created sales transaction with ID %s for customer id %', v_sales_transaction_id, p_customer_id; 
+    FOR i IN 1..array_length(p_array_product_variant_ids, 1) LOOP
+        -- get the price for the product variant
+        SELECT price INTO v_product_variant_price FROM product_variant_price 
+        WHERE product_variant_id = p_array_product_variant_ids[i]
+        AND current = true 
+        LIMIT 1;
+        IF v_product_variant_price IS NULL THEN
+            RAISE EXCEPTION 'No current price found for product_variant_id %, cancelling transaction', p_array_product_variant_ids[i];
+        END IF;
+        INSERT INTO sales_transaction_line (sales_transaction_id, product_variant_id, price_at_sale, qty)
+        VALUES (
+            v_sales_transaction_id, 
+            p_array_product_variant_ids[i], 
+            v_product_variant_price,
+            p_array_qtys[i]
+        );
+        RAISE DEBUG 'Added line: product_variant_id %, qty %', p_array_product_variant_ids[i], p_array_qtys[i];
+        IF p_adjust_inventory THEN
+        -- adjust product_variant_inventory
+            UPDATE product_variant_inventory
+            SET qty = qty - p_array_qtys[i]
+            WHERE product_variant_id = p_array_product_variant_ids[i];
+            RAISE DEBUG 'Updated inventory for product_variant_id %', p_array_product_variant_ids[i];
+        END IF;
+    END LOOP;
+    -- error handling could be added to manage inventory issues, etc.
+    EXCEPTION
+        WHEN check_violation THEN
+            RAISE WARNING 'Check constraint violation occurred.';
+            RAISE WARNING ' %s, cancelling transaction', SQLERRM;
+            RAISE DEBUG 'Rolling back transaction with ID %', v_sales_transaction_id;
+        WHEN OTHERS THEN
+            RAISE WARNING 'Error occurred: %', SQLERRM;
+END;  
+$$ LANGUAGE plpgsql; 
+
 --- view for sales by customer
 
 CREATE OR REPLACE VIEW api.sales_by_customer AS
