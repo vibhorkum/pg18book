@@ -413,7 +413,7 @@ CREATE OR REPLACE VIEW api.vw_product AS
     SELECT id, category_id, brand_id, label, shortdescription, longdescription, image_filename FROM product;
 
 CREATE OR REPLACE VIEW api.vw_product_variant AS
-    SELECT id, product_id, attributes, upc FROM product_variant;
+    SELECT id, product_id, attributes FROM product_variant;
 
 CREATE OR REPLACE VIEW api.vw_product_variant_price AS
     SELECT id, product_variant_id, price, validity, current FROM product_variant_price;    
