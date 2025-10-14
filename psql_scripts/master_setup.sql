@@ -148,42 +148,121 @@ SELECT PG_SLEEP(10);
 \echo 'Reference data counts on ecommerce_reference_data'
 
 SELECT COUNT(*) as product_count from product;
+-- sets the variable ecommerce_product_count
+\gset ecommerce_
+
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
+-- sets the variable ecommerce_active_product_price_count
+\gset ecommerce_
 
 \c east_ecommerce_data
 
 \echo 'East data counts'
 
 SELECT COUNT(*) as product_count from product;
+-- sets the variable east_ecommerce_data_product_count
+\gset east_ecommerce_data_
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
+-- sets the variable east_ecommerce_data_active_product_price_count
+\gset east_ecommerce_data_
+
 SELECT COUNT(*) as customer_count from customer;
+-- sets the variable east_ecommerce_data_customer_count
+\gset east_ecommerce_data_
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
+-- sets the variable east_ecommerce_data_sales_transaction_count
+\gset east_ecommerce_data_
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
+-- sets the variable east_ecommerce_data_sales_transaction_line_count
+\gset east_ecommerce_data_
+
 
 \c west_ecommerce_data
 
 \echo 'West data counts'
 
 SELECT COUNT(*) as product_count from product;
+-- sets the variable west_ecommerce_data_product_count
+\gset west_ecommerce_data_
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
+-- sets the variable west_ecommerce_data_active_product_price_count
+\gset west_ecommerce_data_
 SELECT COUNT(*) as customer_count from customer;
+-- sets the variable west_ecommerce_data_customer_count
+\gset west_ecommerce_data_
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
+-- sets the variable west_ecommerce_data_sales_transaction_count
+\gset west_ecommerce_data_
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
+-- sets the variable west_ecommerce_data_sales_transaction_line_count
+\gset west_ecommerce_data_
 
 \c central_analytics
 \echo 'Central Analytivs data counts'
 
 SELECT COUNT(*) as product_count from product;
+-- sets the variable central_analytics_product_count
+\gset central_analytics_ 
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
-
+-- sets the variable central_analytics_active_product_price_count
+\gset central_analytics_ 
 
 SELECT COUNT(*) as east_customer_count from east_customer.customer;
+-- sets the variable central_analytics_east_customer_count
+\gset central_analytics_ 
 SELECT COUNT(*) as west_customer_count from west_customer.customer;
+-- sets the variable central_analytics_west_customer_count
+\gset central_analytics_ 
 SELECT COUNT(*) as customer_count from merged_customer.customer;
+-- sets the variable central_analytics_customer_count
+\gset central_analytics_ 
 
 SELECT COUNT(*) as sales_transaction_count from merged_sales.sales_transaction;
+-- sets the variable central_analytics_sales_transaction_count
+\gset central_analytics_
 SELECT COUNT(*) as sales_transaction_line_count from merged_sales.sales_transaction_line;
+-- sets the variable central_analytics_sales_transaction_line_count
+\gset central_analytics_
+
+
+\c aidb
+\echo 'AIDB data counts'
+
+SELECT COUNT(*) as product_count from product;
+-- sets the variable aidb_product_count
+\gset aidb_ 
+SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
+-- sets the variable aidb_active_product_price_count
+\gset aidb_ 
+
 \echo 'Done with setup'
+
+\echo '--------------------------------------------------------------------'
+\echo 'Checking product replication results'
+\echo 'ecommerce_product_count:' :ecommerce_product_count
+\echo 'ecommerce_active_product_price_count:' :ecommerce_active_product_price_count
+\echo 'east_ecommerce_data_product_count:' :east_ecommerce_data_product_count
+\echo 'east_ecommerce_data_active_product_price_count:' :east_ecommerce_data_active_product_price_count
+\echo 'west_ecommerce_data_product_count:' :west_ecommerce_data_product_count
+\echo 'west_ecommerce_data_active_product_price_count:' :west_ecommerce_data_active_product_price_count
+\echo 'central_analytics_product_count:' :central_analytics_product_count
+\echo 'central_analytics_active_product_price_count:' :central_analytics_active_product_price_count
+\echo 'aidb_product_count:' :aidb_product_count
+\echo 'aidb_active_product_price_count:' :aidb_active_product_price_count
+\echo '--------------------------------------------------------------------'
+\echo 'Checking customer and sales replication results'
+\echo 'east_ecommerce_data_customer_count:' :east_ecommerce_data_customer_count
+\echo 'east_ecommerce_data_sales_transaction_count:' :east_ecommerce_data_sales_transaction_count
+\echo 'east_ecommerce_data_sales_transaction_line_count:' :east_ecommerce_data_sales_transaction_line_count
+\echo 'west_ecommerce_data_customer_count:' :west_ecommerce_data_customer_count
+\echo 'west_ecommerce_data_sales_transaction_count:' :west_ecommerce_data_sales_transaction_count
+\echo 'west_ecommerce_data_sales_transaction_line_count:' :west_ecommerce_data_sales_transaction_line_count
+\echo 'central_analytics_east_customer_count:' :central_analytics_east_customer_count
+\echo 'central_analytics_west_customer_count:' :central_analytics_west_customer_count
+\echo 'central_analytics_customer_count:' :central_analytics_customer_count
+\echo 'central_analytics_sales_transaction_count:' :central_analytics_sales_transaction_count
+\echo 'central_analytics_sales_transaction_line_count:' :central_analytics_sales_transaction_line_count
+\echo '--------------------------------------------------------------------'
 
 \c postgres
 
