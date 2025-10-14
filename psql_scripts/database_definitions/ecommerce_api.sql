@@ -18,7 +18,7 @@
 
 CREATE OR REPLACE FUNCTION api.manage_customer (
     p_operation_type TEXT,
-    p_id TEXT DEFAULT NULL,
+    p_id UUID DEFAULT NULL,
     p_first_name VARCHAR(50) DEFAULT NULL,
     p_last_name VARCHAR(50) DEFAULT NULL,
     p_phone_numbers JSONB DEFAULT NULL,
@@ -175,7 +175,7 @@ CREATE OR REPLACE FUNCTION api.manage_sales_transaction (
     p_operation_type TEXT,
     p_id TEXT DEFAULT NULL,
     p_transaction_date DATE DEFAULT NULL,
-    p_customer_id TEXT DEFAULT NULL
+    p_customer_id UUID DEFAULT NULL
 )
 RETURNS TABLE (
     operation_type TEXT,
@@ -317,7 +317,7 @@ CREATE OR REPLACE VIEW api.vw_sales_transaction_line AS
 --- procedure to create a sales transaction with lines and adjust inventory
 
 CREATE OR REPLACE PROCEDURE api.execute_sales_transaction(
-    p_customer_id TEXT, 
+    p_customer_id UUID, 
     p_transaction_date DATE, IN 
     p_array_product_variant_ids INT[], 
     IN p_array_qtys INT[],
@@ -330,7 +330,7 @@ $$
 -- if p_adjust_inventory is true, adjust the inventory for each product variant
 
 DECLARE
-    v_sales_transaction_id TEXT; -- the new sales transaction id
+    v_sales_transaction_id UUID; -- the new sales transaction id
     i INT; -- loop counter for the arrays
     v_product_variant_price NUMERIC; -- price of the product variant
     v_qty_on_hand INT; -- quantity on hand for the product variant
@@ -345,7 +345,7 @@ BEGIN
     INSERT INTO sales_transaction (customer_id, transaction_date)
     VALUES (p_customer_id, p_transaction_date)
     RETURNING id INTO v_sales_transaction_id;
-    RAISE DEBUG 'Created sales transaction with ID %s for customer id %', v_sales_transaction_id, p_customer_id; 
+    RAISE DEBUG 'Created sales transaction with id %s for customer id %', v_sales_transaction_id, p_customer_id; 
     FOR i IN 1..array_length(p_array_product_variant_ids, 1) LOOP
         -- get the price for the product variant
         SELECT price INTO v_product_variant_price FROM product_variant_price 

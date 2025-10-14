@@ -71,6 +71,7 @@ $$;
 \i database_definitions/east_ecommerce_data.sql
 
 \echo '.... adding shared API definitions to east ecommerce'
+
 \c east_ecommerce_data
 \i database_definitions/ecommerce_api.sql
 
@@ -123,21 +124,34 @@ SELECT PG_SLEEP(10);
 
 \c east_ecommerce_data
 
+-- load the customer data first
+\i data_sets/east_ecommerce_data/east_customer/customer.sql
+\i data_set_generation/generate_inventory.sql
+\i data_set_generation/generate_sales.sql
+
+
+
+/*
 \i data_sets/east_ecommerce_data/east_customer/customer.sql
 \i data_sets/east_ecommerce_data/inventory/product_variant_inventory.sql
 \i data_sets/east_ecommerce_data/east_sales/sales_transaction.sql
 \i data_sets/east_ecommerce_data/east_sales/sales_transaction_line.sql
-
+*/
 
 \echo '... loading west ecommerce data for customers and sales'
 
 \c west_ecommerce_data
+-- load the customer data first
 \i data_sets/west_ecommerce_data/west_customer/customer.sql
+\i data_set_generation/generate_inventory.sql
+\i data_set_generation/generate_sales.sql
+
+/*
 \i data_sets/west_ecommerce_data/inventory/product_variant_inventory.sql
 \i data_sets/west_ecommerce_data/west_sales/sales_transaction.sql
 \i data_sets/west_ecommerce_data/west_sales/sales_transaction_line.sql
 
-
+*/
 \echo 'Allowing replication to catch up - 10 secs'
 SELECT PG_SLEEP(10);
 
