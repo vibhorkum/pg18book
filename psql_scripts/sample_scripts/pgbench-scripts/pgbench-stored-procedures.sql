@@ -1,12 +1,12 @@
 /*
-
+-- =================================================================================
 Procedures being called by pgbench scripts to
 1) randomly increase inventory of a random product variant by 1-10 units
 2) generate a random sales transaction for a random customer on a random date with 1-5 lines of random product variants and quantities
 3) randomly delete a sales transaction line and adjust inventory accordingly
 
-pgbench-command.sh runs against east_ecommerce_data database
-
+The procedures are created in the east_ecommerce_data database as part of the master_setup.sql script.
+-- =================================================================================
 */
 
 \c east_ecommerce_data
@@ -68,6 +68,7 @@ BEGIN
     CALL api.execute_sales_transaction(v_customer_id, v_transaction_date, v_product_variant_ids, v_qtys, p_adjust_inventory);
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- randomly delete a sales transaction line and adjust inventory accordingly
 CREATE OR REPLACE PROCEDURE delete_random_sales_transaction_line()

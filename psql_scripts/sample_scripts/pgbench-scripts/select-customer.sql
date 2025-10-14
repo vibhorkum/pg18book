@@ -1,4 +1,11 @@
--- select a  customer based on random last_name and random    first_name
+/*
+-- =================================================================================
+Query being called by pgbench scripts to look up a customer.
+
+-- =================================================================================
+*/
+
+-- select a  customer based on random last_name and random first_name
 SELECT * FROM east_customer.customer
 WHERE last_name = (
     SELECT last_name FROM east_customer.customer
