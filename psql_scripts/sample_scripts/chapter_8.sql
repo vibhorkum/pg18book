@@ -1,119 +1,79 @@
 
+
+
+-- enable the pg_stat_statements extension if not already enabled
+-- check if the extension is available
 SELECT * FROM pg_available_extensions WHERE name = 'pg_stat_statements';
 
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
-SELECT pg_stat_statements_reset();
 
-select * from pg_stat_statements order by total_exec_time desc limit 100;
+-- see file pgbench-scripts/pgbench-command.sh for the pgbench command to run the scripts
 
-SELECT
-    query,
- calls,
-    total_exec_time,
-rows,
-    100.0 * shared_blks_hit / nullif(shared_blks_hit + shared_blks_read, 0) AS hit_percent
+-- identifying long running queries
+
+-- column query truncated to first 25 characters for readability
+WITH totals AS (
+    SELECT 
+        SUM(total_exec_time) AS sum_exec_time,
+        SUM(calls) AS sum_calls
+    FROM pg_stat_statements
+)
+SELECT 
+    SUBSTRING(query, 0, 25) AS query, calls AS nbr_of_calls, TO_CHAR(calls/totals.sum_calls, 'FM99.00%') as perc_total_calls, 
+    ROUND(total_exec_time) AS total_exec_time, TO_CHAR(total_exec_time/totals.sum_exec_time, 'FM99.00%') AS perc_exec_time
 FROM pg_stat_statements
-ORDER BY total_time DESC
-LIMIT 5;
+JOIN totals ON TRUE
+ORDER BY total_exec_time DESC
+LIMIT 10;
+
+-- without truncation of column query
+
+WITH totals AS (
+    SELECT 
+        SUM(total_exec_time) AS sum_exec_time,
+        SUM(calls) AS sum_calls
+    FROM pg_stat_statements
+)
+SELECT 
+    query, calls AS nbr_of_calls, TO_CHAR(calls/totals.sum_calls, 'FM99.00%') as perc_total_calls, 
+    ROUND(total_exec_time) AS total_exec_time, TO_CHAR(total_exec_time/totals.sum_exec_time, 'FM99.00%') AS perc_exec_time
+FROM pg_stat_statements
+JOIN totals ON TRUE
+ORDER BY total_exec_time DESC
+LIMIT 10;
+
+-- select top 10 queries Queries with low cache-hit ratio
+
+-- column query truncated to first 25 characters for readability
+WITH totals AS (
+    SELECT SUM(shared_blks_hit + shared_blks_read) AS sum_accesses,
+        SUM(shared_blks_hit) AS sum_hits
+    FROM pg_stat_statements
+)
+SELECT 
+    SUBSTRING(query, 0, 25) AS query, calls AS nbr_of_calls, 
+    shared_blks_hit, shared_blks_read,
+    100* (shared_blks_hit::numeric / NULLIF(shared_blks_hit + shared_blks_read,0))::NUMERIC(5,2) AS hit_cache_ratio
+FROM pg_stat_statements
+JOIN totals ON TRUE
+ORDER BY hit_cache_ratio ASC
+LIMIT 10;
+
+-- without truncation of query
+WITH totals AS (
+    SELECT SUM(shared_blks_hit + shared_blks_read) AS sum_accesses,
+        SUM(shared_blks_hit) AS sum_hits
+    FROM pg_stat_statements
+)
+SELECT 
+    query, calls AS nbr_of_calls, 
+    shared_blks_hit, shared_blks_read,
+    100* (shared_blks_hit::numeric / NULLIF(shared_blks_hit + shared_blks_read,0))::NUMERIC(5,2) AS hit_cache_ratio
+FROM pg_stat_statements
+JOIN totals ON TRUE
+ORDER BY hit_cache_ratio ASC
+LIMIT 10;
 
 
-select * from pg_stat_user_tables;
 
-
-/*
-
-Procedures being called by pgbench scripts to
-1) randomly increase inventory of a random product variant by 1-10 units
-2) generate a random sales transaction for a random customer on a random date with 1-5 lines of random product variants and quantities
-
-*/
-
-CREATE OR REPLACE PROCEDURE random_inventory_increase()
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_product_variant_id INT;
-    v_increase_amount INT;
-BEGIN
-    -- Step 1: Randomly select a product_variant_id
-    SELECT id INTO v_product_variant_id
-    FROM product_variant
-    ORDER BY RANDOM()
-    LIMIT 1;    
-    -- Step 2: Randomly determine an increase amount between 1 and 10
-    v_increase_amount := FLOOR(RANDOM() * 10) + 1;
-    -- Step 3: Update the inventory for the selected product_variant_id
-    UPDATE product_variant_inventory
-    SET qty = qty + v_increase_amount
-    WHERE product_variant_id = v_product_variant_id;
-    RAISE DEBUG 'Increased inventory of product_variant_id % by % units', v_product_variant_id, v_increase_amount;
-END;
-$$;
-
-
-
-
-CREATE OR REPLACE PROCEDURE generate_random_sales_transaction (IN p_adjust_inventory BOOLEAN DEFAULT TRUE)
-AS
-$$
-DECLARE 
-    v_customer_id TEXT;
-    v_transaction_date DATE;
-    v_product_variant_ids INT[];
-    v_qtys INT[];
-    v_num_lines INT;
-    v_product_variant_id INT;
-    v_qty INT;
-    i INT;
-BEGIN
-    -- select a random customer
-    SELECT id INTO v_customer_id FROM customer ORDER BY RANDOM() LIMIT 1;
-    -- select a random date within the last 18 months
-    v_transaction_date := CURRENT_DATE - TRUNC(RANDOM() * 540)::INTEGER;
-    -- determine a random number of lines between 1 and 5
-    v_num_lines := FLOOR(RANDOM() * 5) + 1;
-    v_product_variant_ids := ARRAY[]::INT[];
-    v_qtys := ARRAY[]::INT[];
-    FOR i IN 1..v_num_lines LOOP
-        -- select a random product variant
-        SELECT id INTO v_product_variant_id FROM product_variant ORDER BY RANDOM() LIMIT 1;
-        -- select a random quantity between 1 and 5
-        v_qty := FLOOR(RANDOM() * 5) + 1;
-        v_product_variant_ids := array_append(v_product_variant_ids, v_product_variant_id);
-        v_qtys := array_append(v_qtys, v_qty);
-    END LOOP;
-    -- call the execute_sales_transaction procedure
-    CALL api.execute_sales_transaction(v_customer_id, v_transaction_date, v_product_variant_ids, v_qtys, p_adjust_inventory);
-END;
-$$ LANGUAGE plpgsql;
-
--- randomly delete a sales transaction line and adjust inventory accordingly
-CREATE OR REPLACE PROCEDURE delete_random_sales_transaction_line()
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_line_id TEXT;
-    v_sales_transaction_id TEXT;
-    v_product_variant_id INT;
-    v_qty INT;
-BEGIN
-    -- Step 1: Randomly select a sales_transaction_line id
-    SELECT stl.sales_transaction_id, stl.id, stl.product_variant_id, stl.qty INTO v_sales_transaction_id, v_line_id, v_product_variant_id, v_qty
-    FROM sales_transaction_line stl
-    ORDER BY RANDOM()
-    LIMIT 1;    
-    -- Step 2: Delete the selected sales_transaction_line
-    DELETE FROM sales_transaction_line WHERE id = v_line_id;
-    -- Step 3: Adjust the inventory for the associated product_variant_id
-    UPDATE product_variant_inventory
-    SET qty = qty + v_qty
-    WHERE product_variant_id = v_product_variant_id;
-    RAISE DEBUG 'Deleted sales_transaction_line id %, increased inventory of product_variant_id % by % units', v_line_id, v_product_variant_id, v_qty;
-    -- delete the sales transaction if it has no more lines
-    IF NOT EXISTS (SELECT 1 FROM sales_transaction_line WHERE sales_transaction_id = v_sales_transaction_id) THEN
-        DELETE FROM sales_transaction WHERE id = v_sales_transaction_id;
-        RAISE DEBUG 'Deleted sales_transaction id % as it had no more lines', v_sales_transaction_id;
-    END IF;
-END;
-$$;

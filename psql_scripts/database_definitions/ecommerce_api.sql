@@ -333,6 +333,9 @@ DECLARE
     v_sales_transaction_id TEXT; -- the new sales transaction id
     i INT; -- loop counter for the arrays
     v_product_variant_price NUMERIC; -- price of the product variant
+    v_qty_on_hand INT; -- quantity on hand for the product variant
+    v_qty_adjustment INT; -- quantity adjustment for the inventory
+    v_product_variant_id INT; -- product variant id from the array
     
 BEGIN
     IF array_length(p_array_product_variant_ids, 1) IS DISTINCT FROM array_length(p_array_qtys, 1) THEN
@@ -362,6 +365,11 @@ BEGIN
         RAISE DEBUG 'Added line: product_variant_id %, qty %', p_array_product_variant_ids[i], p_array_qtys[i];
         IF p_adjust_inventory THEN
         -- adjust product_variant_inventory
+            --- put these values into procedure-level variables for clarity in error message
+            v_product_variant_id := p_array_product_variant_ids[i];
+            v_qty_adjustment := p_array_qtys[i];
+            SELECT qty INTO v_qty_on_hand FROM product_variant_inventory
+                WHERE product_variant_id = v_product_variant_id;
             UPDATE product_variant_inventory
             SET qty = qty - p_array_qtys[i]
             WHERE product_variant_id = p_array_product_variant_ids[i];
@@ -371,7 +379,7 @@ BEGIN
     -- error handling could be added to manage inventory issues, etc.
     EXCEPTION
         WHEN check_violation THEN
-            RAISE WARNING 'Check constraint violation occurred.';
+            RAISE WARNING 'Check constraint violation occurred when adjusting inventory for variant % from % by %.', v_product_variant_id, v_qty_on_hand, v_qty_adjustment;
             RAISE WARNING ' %s, cancelling transaction', SQLERRM;
             RAISE DEBUG 'Rolling back transaction with ID %', v_sales_transaction_id;
         WHEN OTHERS THEN

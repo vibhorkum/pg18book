@@ -54,8 +54,15 @@ services:
       PG_LOG_FILENAME: postgresql-%Y-%m-%d.log
       PG_LOG_ROTATION_AGE: 1d
       PG_LOG_ROTATION_SIZE: 100MB
-      PG_LOG_MIN_DURATION_STATEMENT: 1000
+      PG_LOG_MIN_DURATION_STATEMENT: 50
       PG_LOG_STATEMENT: ddl
+      PL_LOG_CHECKPOINTS: on
+      PL_LOG_DEADLOCKS: on
+      PG_LOG_DEADLOCKTIMEOUT: 1000
+      PK_LOG_TEMP_FILES: on
+      PG_LOG_CHECKPOINTS: on
+      PG_LOG_AUTOVACUUM: on
+
       PG_LOG_LINE_PREFIX: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
       
       # Network Settings
