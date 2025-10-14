@@ -1,3 +1,10 @@
+/*
+-- =================================================================================
+Query being called by pgbench scripts to create a top 10 customer report.
+
+-- =================================================================================
+*/
+
 -- select top ten customers by total sales amount
 SELECT c.id, c.first_name, c.last_name, SUM(stl.qty * stl.price_at_sale) AS total_sales
 FROM customer c
