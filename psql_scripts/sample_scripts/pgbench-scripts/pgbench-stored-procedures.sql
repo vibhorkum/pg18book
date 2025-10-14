@@ -39,7 +39,7 @@ CREATE OR REPLACE PROCEDURE generate_random_sales_transaction (IN p_adjust_inven
 AS
 $$
 DECLARE 
-    v_customer_id TEXT;
+    v_customer_id UUID;
     v_transaction_date DATE;
     v_product_variant_ids INT[];
     v_qtys INT[];
@@ -74,8 +74,8 @@ CREATE OR REPLACE PROCEDURE delete_random_sales_transaction_line()
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_line_id TEXT;
-    v_sales_transaction_id TEXT;
+    v_line_id UUID;
+    v_sales_transaction_id UUID;
     v_product_variant_id INT;
     v_qty INT;
 BEGIN

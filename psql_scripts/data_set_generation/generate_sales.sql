@@ -31,7 +31,7 @@ DECLARE
     customer_record RECORD;
     customer_count INTEGER;
     random_date DATE;
-    sales_transaction_id TEXT;
+    sales_transaction_id UUID;
     sales_transaction_lines INTEGER;
     p_product_variant_id INTEGER;
     p_product_variant_price NUMERIC;
@@ -42,6 +42,7 @@ BEGIN
         LOOP
             --- select random date within last 18 months
             random_date := current_date - TRUNC(RANDOM() * 150)::INTEGER;
+
             INSERT INTO sales_transaction (transaction_date, customer_id)
                 VALUES (random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
@@ -72,7 +73,7 @@ DECLARE
     customer_record RECORD;
     customer_count INTEGER;
     random_date DATE;
-    sales_transaction_id TEXT;
+    sales_transaction_id UUID;
     p_product_variant_id INTEGER;
     p_product_variant_price NUMERIC;
 BEGIN
@@ -116,7 +117,7 @@ DECLARE
     customer_record RECORD;
     customer_count INTEGER;
     random_date DATE;
-    sales_transaction_id TEXT;
+    sales_transaction_id UUID;
     p_product_variant_id INTEGER;
     p_product_variant_price NUMERIC;
 BEGIN
@@ -158,20 +159,17 @@ AS
 $$
     DECLARE counter INTEGER;
     BEGIN
-        SELECT COUNT(*) INTO counter FROM sales_transaction;
-        RAISE NOTICE 'Truncating % sales transactions', counter ;
-        TRUNCATE sales_transaction CASCADE;
-        RAISE NOTICE 'Truncated Sales Transactions';
-        RAISE NOTICE 'Creating base random transactions';
+        RAISE DEBUG 'Creating base random transactions';
+        CALL data_generation.generate_random_sales_transaction_data ();
         CALL data_generation.generate_random_sales_transaction_data ();
         SELECT COUNT(*) INTO counter FROM sales_transaction;
-        RAISE NOTICE 'Created % base random transactions', counter;
-        RAISE NOTICE 'Creating t-shirt jeans  transactions';
-        CALL data_generation.generate_tshirt_jeans_sales_transaction_data (.25);
-        RAISE NOTICE 'Creating polo sports coats  transactions';
+        RAISE DEBUG 'Created % base random transactions', counter;
+        RAISE DEBUG 'Creating t-shirt jeans  transactions';
+        CALL data_generation.generate_tshirt_jeans_sales_transaction_data (.60);
+        RAISE DEBUG 'Creating polo sports coats  transactions';
         CALL data_generation.generate_polo_sports_coat_sales_transaction_data (.25);
         SELECT COUNT(*) INTO counter FROM sales_transaction;
-        RAISE NOTICE 'Generated % sales transactions', counter;
+        RAISE DEBUG 'Generated % sales transactions', counter;
     END;
 $$ LANGUAGE PLPGSQL;
 

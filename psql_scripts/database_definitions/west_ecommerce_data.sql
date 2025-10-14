@@ -106,12 +106,9 @@ CREATE TABLE inventory.product_variant_inventory (
 -- maintaining the unique primary key
 -- =================================================================
 
--- define prefix sequence to create unique customer ids for the east coast site
-
-CREATE SEQUENCE west_customer.customer_seq;
 
 CREATE TABLE west_customer.customer (
-    id TEXT PRIMARY KEY DEFAULT ('west_'|| nextval('west_customer.customer_seq')),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone_numbers JSONB,
@@ -121,8 +118,6 @@ CREATE TABLE west_customer.customer (
     country VARCHAR(50) NOT NULL
 );
 
--- assign the sequence to the table/column to make sure it gets dropped with the table
-ALTER SEQUENCE west_customer.customer_seq OWNED BY west_customer.customer.id;
 
 -- =================================================================
 --  SECTION 3: WEST COAST SALES DATA
@@ -132,30 +127,21 @@ ALTER SEQUENCE west_customer.customer_seq OWNED BY west_customer.customer.id;
 -- Using unique schema name to simplify aggregation on the target
 -- =================================================================
 
-CREATE SEQUENCE west_sales.sales_transaction_seq;
-
 CREATE TABLE west_sales.sales_transaction (
-    id TEXT PRIMARY KEY DEFAULT ('west_'|| nextval('west_sales.sales_transaction_seq')),
+    id UUID PRIMARY KEY DEFAULT uuidV7(),
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id TEXT NOT NULL REFERENCES customer(id)
+    customer_id UUID NOT NULL REFERENCES customer(id)
 );
-
-ALTER SEQUENCE west_sales.sales_transaction_seq OWNED BY west_sales.sales_transaction.id;
-
 
 -- Sales transaction line items
 
-CREATE SEQUENCE west_sales.sales_transaction_line_seq;
-
 CREATE TABLE west_sales.sales_transaction_line (
-    id TEXT PRIMARY KEY DEFAULT ('west_'|| nextval('west_sales.sales_transaction_line_seq')),
-    sales_transaction_id TEXT NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuidV7(),
+    sales_transaction_id UUID NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL REFERENCES product.product_variant(id),
     qty INTEGER NOT NULL CHECK (qty > 0),
     price_at_sale NUMERIC(10, 2) NOT NULL CHECK (price_at_sale >= 0)
 );
-
-ALTER SEQUENCE west_sales.sales_transaction_line_seq OWNED BY west_sales.sales_transaction_line.id;
 
 /*
 

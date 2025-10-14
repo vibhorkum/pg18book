@@ -101,7 +101,7 @@ CREATE TABLE product.product_variant_price (
 -- replicated data from the west ecommerce
 
 CREATE TABLE west_customer.customer (
-    id TEXT NOT NULL,
+    id UUID NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone_numbers JSONB,
@@ -115,7 +115,7 @@ CREATE TABLE west_customer.customer (
 -- replicated data from the EU
 
 CREATE TABLE east_customer.customer (
-    id TEXT NOT NULL,
+    id UUID NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone_numbers JSONB,
@@ -130,7 +130,7 @@ CREATE TABLE east_customer.customer (
 -- merged customer data data from the east and west
 
 CREATE TABLE merged_customer.customer (
-    id TEXT,
+    id UUID,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone_numbers JSONB,
@@ -156,15 +156,15 @@ ALTER TABLE merged_customer.customer ATTACH PARTITION west_customer.customer FOR
 -- add an origin column to be able to use it as a partion
 
 CREATE TABLE west_sales.sales_transaction (
-    id TEXT UNIQUE NOT NULL,
+    id UUID UNIQUE NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id TEXT,
+    customer_id UUID,
     origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
 );
 
 CREATE TABLE west_sales.sales_transaction_line (
-    id TEXT UNIQUE NOT NULL,
-    sales_transaction_id TEXT NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
+    id UUID UNIQUE NOT NULL,
+    sales_transaction_id UUID NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
     price_at_sale NUMERIC(10, 2),
@@ -175,15 +175,15 @@ CREATE TABLE west_sales.sales_transaction_line (
 -- add an origin column to be able to use it as a partion
 
 CREATE TABLE east_sales.sales_transaction (
-    id TEXT UNIQUE NOT NULL,
+    id UUID UNIQUE NOT NULL,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id TEXT,
+    customer_id UUID,
     origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
 );
 
 CREATE TABLE east_sales.sales_transaction_line (
-    id TEXT UNIQUE NOT NULL,
-    sales_transaction_id TEXT NOT NULL REFERENCES east_sales.sales_transaction(id) ON DELETE CASCADE,
+    id UUID UNIQUE NOT NULL,
+    sales_transaction_id UUID NOT NULL REFERENCES east_sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
     price_at_sale NUMERIC(10, 2),
@@ -194,9 +194,9 @@ CREATE TABLE east_sales.sales_transaction_line (
 -- merged sales data
 
 CREATE TABLE merged_sales.sales_transaction(
-    id TEXT,
+    id UUID,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id TEXT,
+    customer_id UUID,
     origin VARCHAR(4),
     PRIMARY KEY (id, origin),
     FOREIGN KEY (customer_id, origin) REFERENCES merged_customer.customer (id, origin)
@@ -207,8 +207,8 @@ ALTER TABLE merged_sales.sales_transaction ATTACH PARTITION west_sales.sales_tra
 
 
 CREATE TABLE merged_sales.sales_transaction_line (
-    id TEXT,
-    sales_transaction_id TEXT,
+    id UUID,
+    sales_transaction_id UUID,
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
     price_at_sale NUMERIC(10, 2),

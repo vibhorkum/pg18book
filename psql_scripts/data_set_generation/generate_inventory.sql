@@ -6,6 +6,7 @@
 */
 
 DROP PROCEDURE IF EXISTS generate_product_variant_inventory;
+
 CREATE PROCEDURE generate_product_variant_inventory (p_maxunits INTEGER DEFAULT 500)
 AS
 $$
@@ -13,7 +14,6 @@ DECLARE
     v_product_variant_record RECORD;
     v_random_qty INTEGER;
 BEGIN
-    TRUNCATE product_variant_inventory;
     FOR v_product_variant_record IN SELECT id FROM product.product_variant 
         LOOP
             v_random_qty := TRUNC (RANDOM() * p_maxunits);
@@ -22,3 +22,5 @@ BEGIN
         END LOOP;
 END;
 $$ LANGUAGE PLPGSQL;
+
+CALL generate_product_variant_inventory(500);
