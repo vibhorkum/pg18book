@@ -5,6 +5,7 @@ Create the databases
     - east_ecommerce
     - west_ecommerce
     - central analytics
+    -- aidb
 */
 
 \echo '[DATABASE PREP] ==> Preparing to drop and recreate the database ecommerce_reference_data'
@@ -60,6 +61,8 @@ DROP DATABASE IF EXISTS central_analytics;
 
 \echo '[DATABASE PREP] ==> Creating the database...'
 CREATE DATABASE central_analytics;
+
+-------------------------------------------------------------------------------
 
 \echo '[DATABASE PREP] ==> Preparing to drop and recreate the database aidb.'
 -- Terminate all active connections to the target database before dropping it.

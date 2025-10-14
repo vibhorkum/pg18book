@@ -80,7 +80,12 @@ $$;
 \echo '.... executing database_definitions/aidb.sql'
 \i database_definitions/aidb.sql
 
+\echo '.... adding pgbench-specific stored procedures to east_ecommerce_data'
+\i sample_scripts/pgbench-scripts/pgbench-stored-procedures.sql
+
+
 \echo 'Databases defined'
+\echo '--------------------------------------------------------------------'
 
 \echo 'Setting up replication ...'
 
