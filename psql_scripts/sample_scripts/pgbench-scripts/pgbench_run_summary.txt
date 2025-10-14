@@ -1,0 +1,63 @@
+pgbench (18.0)
+transaction type: multiple scripts
+scaling factor: 1
+query mode: simple
+number of clients: 10
+number of threads: 1
+maximum number of tries: 1
+duration: 30 s
+number of transactions actually processed: 10103
+number of failed transactions: 0 (0.000%)
+latency average = 29.541 ms
+latency stddev = 45.348 ms
+initial connection time = 184.643 ms
+tps = 338.190369 (without initial connection time)
+SQL script 1: gen-inventory.sql
+ - weight: 10 (targets 32.3% of total)
+ - 3364 transactions (33.3% of total)
+ - number of transactions actually processed: 3364 (tps = 112.607384)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 12.664 ms
+ - latency stddev = 24.762 ms
+SQL script 2: gen-sales-transactions.sql
+ - weight: 4 (targets 12.9% of total)
+ - 1312 transactions (13.0% of total)
+ - number of transactions actually processed: 1312 (tps = 43.918219)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 23.630 ms
+ - latency stddev = 31.895 ms
+SQL script 3: delete-sales-transaction-line.sql
+ - weight: 1 (targets 3.2% of total)
+ - 319 transactions (3.2% of total)
+ - number of transactions actually processed: 319 (tps = 10.678286)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 46.984 ms
+ - latency stddev = 36.765 ms
+SQL script 4: update-customer.sql
+ - weight: 4 (targets 12.9% of total)
+ - 1231 transactions (12.2% of total)
+ - number of transactions actually processed: 1231 (tps = 41.206804)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 17.164 ms
+ - latency stddev = 28.618 ms
+SQL script 5: select-customer.sql
+ - weight: 6 (targets 19.4% of total)
+ - 1955 transactions (19.4% of total)
+ - number of transactions actually processed: 1955 (tps = 65.442163)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 8.755 ms
+ - latency stddev = 20.270 ms
+SQL script 6: top-customers.sql
+ - weight: 2 (targets 6.5% of total)
+ - 622 transactions (6.2% of total)
+ - number of transactions actually processed: 622 (tps = 20.820985)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 27.716 ms
+ - latency stddev = 32.737 ms
+SQL script 7: top-selling-products.sql
+ - weight: 4 (targets 12.9% of total)
+ - 1300 transactions (12.9% of total)
+ - number of transactions actually processed: 1300 (tps = 43.516528)
+ - number of failed transactions: 0 (0.000%)
+ - latency average = 118.751 ms
+ - latency stddev = 39.098 ms

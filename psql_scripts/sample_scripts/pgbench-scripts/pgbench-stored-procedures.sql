@@ -5,7 +5,11 @@ Procedures being called by pgbench scripts to
 2) generate a random sales transaction for a random customer on a random date with 1-5 lines of random product variants and quantities
 3) randomly delete a sales transaction line and adjust inventory accordingly
 
+pgbench-command.sh runs against east_ecommerce_data database
+
 */
+
+\c east_ecommerce_data
 
 CREATE OR REPLACE PROCEDURE random_inventory_increase()
 LANGUAGE plpgsql

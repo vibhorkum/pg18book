@@ -10,6 +10,8 @@ vacuumdb -h localhost -p 5432 --dbname=east_ecommerce_data --full --verbose
 # reset the statistics counters
 ECHO "Resetting the statistics counters"
 
+psql -h localhost -p 5432 -d east_ecommerce_data -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
+
 psql -h localhost -p 5432 -d east_ecommerce_data -c "SELECT * FROM pg_stat_reset ();"
 psql -h localhost -p 5432 -d east_ecommerce_data -c "SELECT * FROM pg_stat_statements_reset();"
 
@@ -18,13 +20,13 @@ psql -h localhost -p 5432 -d east_ecommerce_data -c "SELECT * FROM pg_stat_state
 # 10 concurrent connections for 600 seconds
 # progress report every 5 seconds
 # the files are run in the order specified, with the @n indicating the relative frequency of execution
-pgbench  -h localhost -p 5432 -r -l \
+pgbench  -h localhost -p 5432 \
 -d east_ecommerce_data \
--c 10 -n -T 600  -P 5 \
+-c 10 -n -T 30  -P 5 \
 -f gen-inventory.sql@10 \
 -f gen-sales-transactions.sql@4 \
 -f delete-sales-transaction-line.sql@1 \
 -f update-customer.sql@4 \
 -f select-customer.sql@6 \
 -f top-customers.sql@2 \
--f top-selling-products.sql@4 \
+-f top-selling-products.sql@4 > pgbench_run_summary.txt
