@@ -1,4 +1,6 @@
   
+  --- Chapter 7 examples
+  --- JSONB Example
   \c postgres
 
   CREATE TABLE jsonb_example (
@@ -31,6 +33,7 @@
   ]
 }'
   );
+ 
 
 SELECT jsonb_pretty(JSONB_INSERT (info, '{phoneNumbers,0}', '{"type":"mobile", "number": "617 306 6059"}', true))
   FROM jsonb_example WHERE id=1;  
@@ -81,6 +84,14 @@ SELECT
 -- formatted output
 SELECT id, jsonb_pretty(info) FROM jsonb_example;
 
+/*
+
+Creating and Accessing JSON Documents 
+
+*/
+
+\c east_ecommerce_data
+
 -- building a JSON object from tabular data
 
 DROP TABLE IF EXISTS brand_country_json;
@@ -115,6 +126,9 @@ SELECT
   JSONB_PATH_QUERY (brand_info, '$.country.name') AS country_name
 FROM brand_country_json WHERE id=9;
 
+
+\c postgres
+
 SELECT JSONB_PATH_QUERY (info, '$.lastName') AS name, 
   JSONB_PATH_QUERY(info,  '$.phoneNumbers[*][0] ? (@.type == "home")')->'number' AS home_nbr 
   FROM jsonb_example;
@@ -122,6 +136,40 @@ SELECT JSONB_PATH_QUERY (info, '$.lastName') AS name,
 
 SELECT JSONB_INSERT (info, '{weight_kg}', '84', true) 
   FROM jsonb_example WHERE id=1;
+
+/*
+
+Updating JSON Documents 
+
+*/
+
+-- add a new phone number entry to our complex JSON example
+
+SELECT  
+  JSONB_SET ( 
+    info, -- the target JSONB column 
+    '{phoneNumbers,2}', -- the path to the new entry 
+    '{"type":"mobile", "number": "617 306 6059"}', -- the changed data 
+    true -- create missing path elements if needed 
+    ) 
+  FROM jsonb_example WHERE id=1;    
+
+-- update the existing phone number    
+
+SELECT  
+  JSONB_SET( 
+    info, 
+    '{phoneNumbers,1,number}', 
+    '"617 306 6059"') 
+FROM jsonb_example WHERE id=1; 
+
+-- The first example REMOVES the key state and its value from the query results
+--  the second example removes the 2nd entry in the array of phone numbers
+
+SELECT info #- '{address, state}' FROM jsonb_example WHERE id=1;  
+ 
+SELECT info #- '{phoneNumbers,1}' FROM jsonb_example WHERE id=1;  
+
 
 
 -- JSON_TABLE example
@@ -137,33 +185,25 @@ SELECT id, first_name, pn.* FROM customer,
         home TEXT PATH '$.home')
       ) AS pn;
 
+-- create an index on the mobile phone number extracted from the JSONB column phone_numbers
 
 DROP INDEX IF EXISTS idx_customers_mobile;
 CREATE INDEX idx_customers_mobile ON customer ((phone_numbers->>'mobile'));    
 
 select phone_numbers->>'mobile' from customer;
 
-DROP TABLE IF EXISTS array_example;
-CREATE TABLE array_example (
-  id SERIAL PRIMARY KEY,
-  myarray INTEGER[][][]
-);
+/*
 
-INSERT INTO array_example (myarray) VALUES ('{{1,2,3},{4,5,6},{7,8,9},{10,11,12}}');
+-- Arrays
 
-SELECT * FROM array_example;
+*/
 
-SELECT id, unnest(myarray) AS units_sold
-FROM array_example;
+\c postgres
 
-SELECT id, myarray[0] as test FROM array_example;
-
-SELECT id, myarray[1] AS first_array
-FROM array_example;
+-- example with military spelling
 
 DROP TABLE IF EXISTS array_spelling;
 
--- example with text arrays
 CREATE TABLE array_spelling (
   country TEXT PRIMARY KEY,
   spelling TEXT[]
@@ -194,29 +234,20 @@ UPDATE array_spelling
 SET spelling = ARRAY_REMOVE(spelling, 'Golf')
 WHERE country = 'US';
 
+--- ranges example
 
---- vectors
+-- see the definition of product.product_variant_price table
+-- in psql_scripts/database_definitions/ecommerce_reference_data.sql
 
-DROP TABLE IF EXISTS vector_example;
+/*
 
+-- Custom Data Types
 
-CREATE TABLE vector_example (
-    id bigserial PRIMARY KEY, 
-    embedding vector(3));
+*/ 
 
-INSERT INTO vector_example (embedding) 
-  VALUES 
-    ('[1,1,0]'),
-    ('[1,2,2]'),
-    ('[3,2,3]'),
-    ('[1.5,2,3]');
+\c postgres
 
-SELECT embedding <-> '[0.8,1.5,0]' as L2_distance, * 
-  FROM vector_example ORDER BY L2_distance;
-
------------------------------------------------------------------------------------
--- Custom Types  
-
+-- Domain Types
 
 CREATE DOMAIN price AS NUMERIC(8,2)
   CHECK (VALUE >= 0);
@@ -238,6 +269,7 @@ SELECT * FROM custom_type_example;
 
 
 --- Composite Types
+
 DROP TYPE IF EXISTS custom_product CASCADE;
 
 CREATE TYPE custom_product AS (
@@ -263,7 +295,7 @@ INSERT INTO composite_type_example (product_info)
 
 SELECT * FROM composite_type_example;
 
--- enumerated type
+-- Enumeration Types
 
 DROP TYPE IF EXISTS week_days;
 
@@ -290,9 +322,10 @@ INSERT INTO enum_example (day) VALUES ('FRIDAY');  -- this will fail
 
 SELECT * FROM enum_example WHERE day > 'Friday';
 
--- UUID type
+--- UUID Type
 
 DROP TABLE IF EXISTS uuid_example;
+
 CREATE TABLE uuid_example (
     id UUID PRIMARY KEY DEFAULT uuidV7(),
     name TEXT
@@ -303,6 +336,9 @@ INSERT INTO uuid_example (name) VALUES ('Item 1'), ('Item 2'), ('Item 3');
 SELECT *, uuid_extract_timestamp(id) FROM uuid_example;
 
 --- UUID versus INTEGER table size test
+
+-- Extension pgstattuple provides information about table and index sizes
+CREATE EXTENSION pgstattuple;
 
 
 DROP TABLE IF EXISTS test_integer;
@@ -328,12 +364,70 @@ select pg_relation_size('test_UUID');
 
 SELECT (pgstattuple('test_integer'));
 
-CREATE EXTENSION pgstattuple;
-
 SELECT (pgstattuple('test_integer')).tuple_len;
 
 SELECT * FROM pgstattuple('test_UUID');
 SELECT * FROM pgstattuple('test_integer');
+
+--- Vector Type
+
+DROP TABLE IF EXISTS vector_example;
+
+
+CREATE TABLE vector_example (
+    id bigserial PRIMARY KEY, 
+    embedding vector(3));
+
+INSERT INTO vector_example (embedding) 
+  VALUES 
+    ('[1,1,0]'),
+    ('[1,2,2]'),
+    ('[3,2,3]'),
+    ('[1.5,2,3]');
+
+SELECT embedding <-> '[0.8,1.5,0]' as L2_distance, * 
+  FROM vector_example ORDER BY L2_distance;
+
+
+/*
+
+Dealing with hostpots in MVCC
+
+*/
+
+\c postgres
+
+DROP TABLE IF EXISTS users; 
+CREATE TABLE users ( 
+  id SERIAL PRIMARY KEY, 
+  f_name TEXT, 
+  l_name TEXT, 
+  email TEXT UNIQUE NOT NULL, 
+  nbr_followers INTEGER, 
+  UNIQUE (f_name, l_name) 
+); 
+ 
+CREATE INDEX idx_user_test_fname_lname ON users (f_name, l_name); 
+
+CREATE TABLE follower_count ( 
+  user_id INTEGER REFERNCES users(id) ON DELETE CASCADE, 
+  follower_count INTEGER 
+); 
+
+CREATE TABLE follower_count ( 
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, 
+  follower_count INTEGER 
+) PARTITION BY HASH (user_id); 
+ 
+-- Create partitions 
+CREATE TABLE follower_count_part_0 PARTITION OF follower_count FOR VALUES WITH (MODULUS 4, REMAINDER 0); 
+CREATE TABLE follower_count_part_1 PARTITION OF follower_count FOR VALUES WITH (MODULUS 4, REMAINDER 1); 
+CREATE TABLE follower_count_part_2 PARTITION OF follower_count FOR VALUES WITH (MODULUS 4, REMAINDER 2); 
+CREATE TABLE follower_count_part_3 PARTITION OF follower_count FOR VALUES WITH (MODULUS 4, REMAINDER 3);
+
+
+
+
 
 -------------------------------
 -- Expression Indexes
