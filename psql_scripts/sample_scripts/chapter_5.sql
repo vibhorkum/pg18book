@@ -59,8 +59,8 @@ INSERT INTO brand (id, label, description)
 INSERT INTO product (id, category_id, brand_id, label, shortdescription)
     VALUES (10000, 1, 10001, 'Jeans by Wrangler', 'Best pants for a great day');
 
-INSERT INTO product_variant (id, product_id, attributes, upc)    
-    VALUES (10001, 10000, '{"color": "blue", "size": "32/36", "fit": "Boot Leg"}', '1234567890');
+INSERT INTO product_variant (id, product_id, attributes)    
+    VALUES (10001, 10000, '{"color": "blue", "size": "32/36", "fit": "Boot Leg"}');
 COMMIT;
 
 BEGIN;
