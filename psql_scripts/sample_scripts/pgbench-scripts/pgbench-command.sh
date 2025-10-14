@@ -1,5 +1,16 @@
-# run with ./pgbench-command.sh
-# all commands are defined in the files in this directory and call procedures defined in /sample_scripts/chapter_8.sql files
+#=================================================================================
+# File: pgbench-command.sh
+# Description: runs a pgbench test against the east_ecommerce_data database
+# Run it as a shell script from the psql_scripts/sample_scripts/pgbench-scripts directory
+# Prerequisites:
+# 1) a running PostgreSQL instance on localhost port 5432
+# 2) the east_ecommerce_data database created and populated with data
+# 3) the pgbench stored procedures created in the east_ecommerce_data database
+# 4) the pg_stat_statements extension created in the east_ecommerce_data database
+# 5) the pgbench command line tool installed
+# 6) the user postgres with no password access to the east_ecommerce_data database
+#=================================================================================
+
 
 # vacuum full firstly the entire database 
 

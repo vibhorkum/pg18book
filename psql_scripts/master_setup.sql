@@ -1,19 +1,26 @@
 /*
- Master script to set up the eCommerce structure with multiple databases on the same server
+-- =================================================================================
+ Master script to set up the eCommerce structure with multiple databases on the same server.
+ This script should be run from the 'postgres' database as a superuser.
+ The script performs the following steps:
 
- Sequence:
  0) Check the underlying configuration
- 1) reference_data.sql (creates ecommerce_reference_data)
- 2) us_ecommerce_data.sql (creates us_ecommerce_data)
- 3) replication_setup.sql (sets up product reference replication from ecommerce_reference_data to us_ecommerce_data)
- 4) reference_data_set.sql (populates ecommerce_reference_data)
+ 1) Define the DBA users
+ 2) Create the databases
+ 3) Create the replication publications and subscriptions
+ 4) Load the reference data into the ecommerce_reference_data database
+ 5) Load the customer and sales data into the east_ecommerce_data and west_ecommerce_data databases
+ 6) Check the replication results in all databases  
 
+ Use master_teardown.sql to drop all databases, replication definitions, and users.
+-- =================================================================================
 */
+
 
 --- make sure psql stops after the first error
 \set ON_ERROR_STOP on
-
 SET client_min_messages TO NOTICE;
+
 
 \c postgres
 
@@ -55,7 +62,7 @@ $$;
 \echo 'Creating databases ...'
 \i database_definitions/create_databases.sql
 
-
+-- DDL for each database
 \echo '.... database_definitions/ecommerce_reference_data.sql'
 \i database_definitions/ecommerce_reference_data.sql
 
@@ -66,12 +73,10 @@ $$;
 \c west_ecommerce_data
 \i database_definitions/ecommerce_api.sql
 
-
 \echo '.... executing database_definitions/east_ecommerce_data.sql'
 \i database_definitions/east_ecommerce_data.sql
 
 \echo '.... adding shared API definitions to east ecommerce'
-
 \c east_ecommerce_data
 \i database_definitions/ecommerce_api.sql
 
@@ -81,6 +86,9 @@ $$;
 \echo '.... executing database_definitions/aidb.sql'
 \i database_definitions/aidb.sql
 
+-- add the pgbench stored procedures to east_ecommerce_data
+-- pgbench-command.sh (psql_scripts/sample_scripts/pgbench-scripts/) in 
+-- runs against east_ecommerce_data database
 \echo '.... adding pgbench-specific stored procedures to east_ecommerce_data'
 \i sample_scripts/pgbench-scripts/pgbench-stored-procedures.sql
 
@@ -96,7 +104,8 @@ $$;
 \echo '.... executing replication/customer_sales_replication_setup.sql'
 \i replication/customer_sales_replication_setup.sql
 
-\echo 'replication set up'
+\echo 'Replication set up'
+\echo '--------------------------------------------------------------------'
 
 \echo '.... loading product reference data'
 
@@ -108,58 +117,50 @@ $$;
 \i data_sets/ecommerce_reference_data/product/product_variant_price.sql
 \i data_sets/ecommerce_reference_data/product/country_of_origin.sql
 
-
-
 \echo 'Product reference data loaded'
+\echo '--------------------------------------------------------------------'
 
 \echo 'Allowing replication to catch up - 10 secs'
 SELECT PG_SLEEP(10);
 
 
---- this resets the sequences so that the API calls don't conflict
-
+/*
+This resets the sequences used by the product definitions so that the API calls 
+don't conflict. This is needed as the initial product definitions are hard coded
+and the sequences need to be set to a value above the highest hard coded value.
+*/
+\echo 'Resetting product sequences ...'
 \i data_sets/ecommerce_reference_data/product/alter_product_sequences.sql
 
 \echo '... loading east ecommerce data for customers and sales'
 
 \c east_ecommerce_data
-
--- load the customer data first
+-- load the customer data first from file.
 \i data_sets/east_ecommerce_data/east_customer/customer.sql
+-- then generate inventory and sales data
 \i data_set_generation/generate_inventory.sql
 \i data_set_generation/generate_sales.sql
 
-
-
-/*
-\i data_sets/east_ecommerce_data/east_customer/customer.sql
-\i data_sets/east_ecommerce_data/inventory/product_variant_inventory.sql
-\i data_sets/east_ecommerce_data/east_sales/sales_transaction.sql
-\i data_sets/east_ecommerce_data/east_sales/sales_transaction_line.sql
-*/
 
 \echo '... loading west ecommerce data for customers and sales'
 
 \c west_ecommerce_data
--- load the customer data first
+-- load the customer data first from file
 \i data_sets/west_ecommerce_data/west_customer/customer.sql
+-- then generate inventory and sales data
 \i data_set_generation/generate_inventory.sql
 \i data_set_generation/generate_sales.sql
 
-/*
-\i data_sets/west_ecommerce_data/inventory/product_variant_inventory.sql
-\i data_sets/west_ecommerce_data/west_sales/sales_transaction.sql
-\i data_sets/west_ecommerce_data/west_sales/sales_transaction_line.sql
+\echo 'Customer and sales data loaded'
+\echo '--------------------------------------------------------------------'
 
-*/
 \echo 'Allowing replication to catch up - 10 secs'
 SELECT PG_SLEEP(10);
 
-\echo 'Displaying replication results ...'
-
-\c ecommerce_reference_data
+\echo 'Checking replication results ...'
 
 \echo 'Reference data counts on ecommerce_reference_data'
+\c ecommerce_reference_data
 
 SELECT COUNT(*) as product_count from product;
 -- sets the variable ecommerce_product_count
@@ -169,13 +170,13 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 -- sets the variable ecommerce_active_product_price_count
 \gset ecommerce_
 
+\echo 'Data counts on east_ecommerce_data'
 \c east_ecommerce_data
-
-\echo 'East data counts'
 
 SELECT COUNT(*) as product_count from product;
 -- sets the variable east_ecommerce_data_product_count
 \gset east_ecommerce_data_
+
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 -- sets the variable east_ecommerce_data_active_product_price_count
 \gset east_ecommerce_data_
@@ -183,40 +184,45 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 SELECT COUNT(*) as customer_count from customer;
 -- sets the variable east_ecommerce_data_customer_count
 \gset east_ecommerce_data_
+
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
 -- sets the variable east_ecommerce_data_sales_transaction_count
 \gset east_ecommerce_data_
+
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
 -- sets the variable east_ecommerce_data_sales_transaction_line_count
 \gset east_ecommerce_data_
 
-
+\echo 'Data counts on west_ecommerce_data'
 \c west_ecommerce_data
-
-\echo 'West data counts'
 
 SELECT COUNT(*) as product_count from product;
 -- sets the variable west_ecommerce_data_product_count
 \gset west_ecommerce_data_
+
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 -- sets the variable west_ecommerce_data_active_product_price_count
 \gset west_ecommerce_data_
+
 SELECT COUNT(*) as customer_count from customer;
 -- sets the variable west_ecommerce_data_customer_count
 \gset west_ecommerce_data_
+
 SELECT COUNT(*) as sales_transaction_count from sales_transaction;
 -- sets the variable west_ecommerce_data_sales_transaction_count
 \gset west_ecommerce_data_
+
 SELECT COUNT(*) as sales_transaction_line_count from sales_transaction_line;
 -- sets the variable west_ecommerce_data_sales_transaction_line_count
 \gset west_ecommerce_data_
 
+\echo 'Data counts on central_analytics'
 \c central_analytics
-\echo 'Central Analytivs data counts'
 
 SELECT COUNT(*) as product_count from product;
 -- sets the variable central_analytics_product_count
 \gset central_analytics_ 
+
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 -- sets the variable central_analytics_active_product_price_count
 \gset central_analytics_ 
@@ -224,9 +230,11 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 SELECT COUNT(*) as east_customer_count from east_customer.customer;
 -- sets the variable central_analytics_east_customer_count
 \gset central_analytics_ 
+
 SELECT COUNT(*) as west_customer_count from west_customer.customer;
 -- sets the variable central_analytics_west_customer_count
 \gset central_analytics_ 
+
 SELECT COUNT(*) as customer_count from merged_customer.customer;
 -- sets the variable central_analytics_customer_count
 \gset central_analytics_ 
@@ -234,22 +242,22 @@ SELECT COUNT(*) as customer_count from merged_customer.customer;
 SELECT COUNT(*) as sales_transaction_count from merged_sales.sales_transaction;
 -- sets the variable central_analytics_sales_transaction_count
 \gset central_analytics_
+
 SELECT COUNT(*) as sales_transaction_line_count from merged_sales.sales_transaction_line;
 -- sets the variable central_analytics_sales_transaction_line_count
 \gset central_analytics_
 
-
+\echo 'Data counts on aidb'
 \c aidb
-\echo 'AIDB data counts'
 
 SELECT COUNT(*) as product_count from product;
 -- sets the variable aidb_product_count
 \gset aidb_ 
+
 SELECT COUNT(*) as active_product_price_count from product_variant_price where current=true;
 -- sets the variable aidb_active_product_price_count
 \gset aidb_ 
 
-\echo 'Done with setup'
 
 \echo '--------------------------------------------------------------------'
 \echo 'Checking product replication results'
