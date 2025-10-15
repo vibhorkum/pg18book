@@ -44,8 +44,8 @@ CREATE SCHEMA merged_sales;
 
 \echo '--> Creating the search path at the database level'
 
-ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, customer_merged, sales_merged; -- permanent change
-SET SEARCH_PATH TO api, product, customer_merged, sales_merged;  --- make sure path is available in current session
+ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, merged_customer, merged_sales; -- permanent change
+SET SEARCH_PATH TO api, product, merged_customer, merged_sales;  --- make sure path is available in current session
 
 -- =================================================================
 --  SECTION 2: PRODUCT REFERENCE DATA
@@ -156,14 +156,14 @@ ALTER TABLE merged_customer.customer ATTACH PARTITION west_customer.customer FOR
 -- add an origin column to be able to use it as a partion
 
 CREATE TABLE west_sales.sales_transaction (
-    id UUID UNIQUE NOT NULL,
+    id UUID UNIQUE NOT NULL, -- needs to be unique to support foreign key
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     customer_id UUID,
     origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
 );
 
 CREATE TABLE west_sales.sales_transaction_line (
-    id UUID UNIQUE NOT NULL,
+    id UUID NOT NULL,
     sales_transaction_id UUID NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
@@ -175,14 +175,14 @@ CREATE TABLE west_sales.sales_transaction_line (
 -- add an origin column to be able to use it as a partion
 
 CREATE TABLE east_sales.sales_transaction (
-    id UUID UNIQUE NOT NULL,
+    id UUID UNIQUE NOT NULL, -- needs to be unique to support foreign key
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     customer_id UUID,
     origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
 );
 
 CREATE TABLE east_sales.sales_transaction_line (
-    id UUID UNIQUE NOT NULL,
+    id UUID NOT NULL,
     sales_transaction_id UUID NOT NULL REFERENCES east_sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
@@ -235,6 +235,7 @@ $$
   BEGIN
     NEW.first_name = 'masked';
     NEW.last_name = 'masked';
+    NEW.phone_numbers = '{"home": "+1 (555) 123-345", "mobile": "+1 (555) 456-789"}';
     RETURN NEW;
   END;
 $$ LANGUAGE PLPGSQL;
