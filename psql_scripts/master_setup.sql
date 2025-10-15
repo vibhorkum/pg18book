@@ -4,7 +4,7 @@
  This script should be run from the 'postgres' database as a superuser.
  The script performs the following steps:
 
- 0) Check the underlying configuration
+ 0) Check the underlying configuration and create helper function to check replication status
  1) Define the DBA users
  2) Create the databases
  3) Create the replication publications and subscriptions
@@ -24,16 +24,14 @@ SET client_min_messages TO NOTICE;
 
 \c postgres
 
+\echo 'Checking server configuration'
 /*
 Check the underlying configuration
 - wal_level = logical
 - logging_collector=on 
 - max_logical_replication_workers>=10 
 - log_statement=ddl
-
 */
-
-\echo 'Checking server configuration'
 DO 
 $$
 DECLARE 
@@ -54,7 +52,58 @@ BEGIN
     END IF;
 END 
 $$;
+
 \echo 'Server config ok'
+
+-- helper function to check progress of subscriptions
+-- defined in database postgres
+-- will be dropped at the end of the setup script
+
+DROP PROCEDURE IF EXISTS check_subscriptions;
+
+CREATE PROCEDURE check_subscriptions () AS
+$$
+DECLARE 
+    v_array_subscriptions text[] := ARRAY['east_product_data_sub','west_product_data_sub', 'central_analytics_product_sub', 'aidb_product_sub'];
+    v_lsn_diff INTEGER := 0;
+    v_total_lsn_diff INTEGER := 0;
+    v_sub TEXT;
+    v_loop_ctr INTEGER := 0;
+    v_wait_limit INTEGER := 100; -- maximum wait loops
+BEGIN
+    RAISE NOTICE 'Checking that the following subscriptions are caught up: %', ARRAY_TO_STRING(v_array_subscriptions, ', ');
+    LOOP
+        -- check if any subscription has a lsn diff > 0
+        v_total_lsn_diff :=0;
+        v_loop_ctr := v_loop_ctr + 1;
+        FOREACH v_sub IN ARRAY v_array_subscriptions LOOP
+            RAISE DEBUG 'Checking on %', v_sub;
+            SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) INTO v_lsn_diff
+                FROM pg_stat_replication
+            WHERE application_name = v_sub;
+            IF v_lsn_diff > 0 THEN 
+                RAISE DEBUG 'Subscription % has a LSN diff of %', v_sub, v_lsn_diff;
+                v_total_lsn_diff := v_total_lsn_diff + v_lsn_diff;
+            ELSE 
+                RAISE DEBUG 'Subscription % is caught up', v_sub;
+            END IF;
+        END LOOP;
+        -- if v_total_lsn_diff = 0, then all subscriptions have caught up. Exit loop
+        IF v_total_lsn_diff = 0 THEN
+            RAISE NOTICE 'All subscriptions are caught up';
+            EXIT;
+        -- if we tried too often, abort as there is a problem.
+        ELSEIF v_loop_ctr > v_wait_limit THEN   
+            RAISE EXCEPTION 'Stopped waiting for replications to catch up after % loops', v_loop_ctr;
+        -- wait 1 sec and try again
+        ELSE
+            PERFORM PG_SLEEP(1);
+        END IF;
+    END LOOP;
+END
+$$ LANGUAGE PLPGSQL;
+
+-- start Step 1
 
 \echo 'Defining the DBA users'
 \i database_definitions/define_roles.sql
@@ -120,9 +169,10 @@ $$;
 \echo 'Product reference data loaded'
 \echo '--------------------------------------------------------------------'
 
-\echo 'Allowing replication to catch up - 10 secs'
-SELECT PG_SLEEP(10);
 
+
+\c postgres 
+CALL check_subscriptions();
 
 /*
 This resets the sequences used by the product definitions so that the API calls 
@@ -154,9 +204,11 @@ and the sequences need to be set to a value above the highest hard coded value.
 \echo 'Customer and sales data loaded'
 \echo '--------------------------------------------------------------------'
 
-\echo 'Allowing replication to catch up - 10 secs'
-SELECT PG_SLEEP(10);
+-- make sure replication has caught up
+\c postgres 
+CALL check_subscriptions();
 
+-- collect data to make sure all data has arrived in east/west/central/aidb
 \echo 'Checking replication results ...'
 
 \echo 'Reference data counts on ecommerce_reference_data'
@@ -287,5 +339,11 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 \echo '--------------------------------------------------------------------'
 
 \c postgres
+
+-- cleanup helper function
+
+DROP PROCEDURE IF EXISTS check_subscriptions;
+
+-- list databases
 
 \l
