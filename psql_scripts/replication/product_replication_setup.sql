@@ -55,6 +55,7 @@ CREATE PUBLICATION central_analytics_product_publication
     FOR TABLE 
         product.category, 
         product.brand, 
+        product.country_of_origin,
         product.product, 
         product.product_variant,
         --- send all rows
