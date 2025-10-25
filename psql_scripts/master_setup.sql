@@ -279,15 +279,8 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 -- sets the variable central_analytics_active_product_price_count
 \gset central_analytics_ 
 
-SELECT COUNT(*) as east_customer_count from east_customer.customer;
--- sets the variable central_analytics_east_customer_count
-\gset central_analytics_ 
 
-SELECT COUNT(*) as west_customer_count from west_customer.customer;
--- sets the variable central_analytics_west_customer_count
-\gset central_analytics_ 
-
-SELECT COUNT(*) as customer_count from merged_customer.customer;
+SELECT COUNT(*) as customer_count from customer.customer;
 -- sets the variable central_analytics_customer_count
 \gset central_analytics_ 
 
@@ -331,8 +324,6 @@ SELECT COUNT(*) as active_product_price_count from product_variant_price where c
 \echo 'west_ecommerce_data_customer_count:' :west_ecommerce_data_customer_count
 \echo 'west_ecommerce_data_sales_transaction_count:' :west_ecommerce_data_sales_transaction_count
 \echo 'west_ecommerce_data_sales_transaction_line_count:' :west_ecommerce_data_sales_transaction_line_count
-\echo 'central_analytics_east_customer_count:' :central_analytics_east_customer_count
-\echo 'central_analytics_west_customer_count:' :central_analytics_west_customer_count
 \echo 'central_analytics_customer_count:' :central_analytics_customer_count
 \echo 'central_analytics_sales_transaction_count:' :central_analytics_sales_transaction_count
 \echo 'central_analytics_sales_transaction_line_count:' :central_analytics_sales_transaction_line_count

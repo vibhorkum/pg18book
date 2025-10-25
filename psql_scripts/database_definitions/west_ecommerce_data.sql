@@ -21,12 +21,12 @@
 CREATE SCHEMA IF NOT EXISTS api;
 CREATE SCHEMA IF NOT EXISTS product; -- replicated from ecommerce_reference_data.product.*
 CREATE SCHEMA IF NOT EXISTS inventory; -- private
-CREATE SCHEMA IF NOT EXISTS west_customer; -- replicated to analytics.west_customer.*
+CREATE SCHEMA IF NOT EXISTS customer; -- replicated to analytics.customer.*
 CREATE SCHEMA IF NOT EXISTS west_sales; -- replicated to analytics.west_sales.*
 
 \echo '--> Creating the search path at the database level'
-ALTER DATABASE west_ecommerce_data SET SEARCH_PATH TO api, product, inventory, west_customer, west_sales; -- permanent change
-SET SEARCH_PATH TO api, product, inventory, west_customer, west_sales; -- make sure path is available in current session
+ALTER DATABASE west_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, west_sales; -- permanent change
+SET SEARCH_PATH TO api, product, inventory, customer, west_sales; -- make sure path is available in current session
 
 
 -- =================================================================
@@ -114,7 +114,7 @@ CREATE TABLE inventory.product_variant_inventory (
 -- =================================================================
 
 
-CREATE TABLE west_customer.customer (
+CREATE TABLE customer.customer (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -122,7 +122,8 @@ CREATE TABLE west_customer.customer (
     street_address VARCHAR(100) NOT NULL,
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(50) NOT NULL
+    country VARCHAR(50) NOT NULL,
+    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
 );
 
 

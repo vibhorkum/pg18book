@@ -19,13 +19,13 @@
 CREATE SCHEMA IF NOT EXISTS api;
 CREATE SCHEMA IF NOT EXISTS product; -- replicated from ecommerce_reference_data.product.*
 CREATE SCHEMA IF NOT EXISTS inventory; -- private
-CREATE SCHEMA IF NOT EXISTS east_customer; -- replicated to analytics.east_customer.*
+CREATE SCHEMA IF NOT EXISTS customer; -- replicated to analytics.customer.*
 CREATE SCHEMA IF NOT EXISTS east_sales; -- replicated to analytics.east_sales.*
 
 --- this needs to change. Search paths definitions needs to move into the api calls
 \echo '--> Creating the search path at the database level'
-ALTER DATABASE east_ecommerce_data SET SEARCH_PATH TO api, product, inventory, east_customer, east_sales; -- permanent change
-SET SEARCH_PATH TO api, product, inventory, east_customer, east_sales; -- make sure path is available in current session
+ALTER DATABASE east_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, east_sales; -- permanent change
+SET SEARCH_PATH TO api, product, inventory, customer, east_sales; -- make sure path is available in current session
 
 
 -- =================================================================
@@ -114,7 +114,7 @@ CREATE TABLE inventory.product_variant_inventory (
 
 
 
-CREATE TABLE east_customer.customer (
+CREATE TABLE customer.customer (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -122,10 +122,11 @@ CREATE TABLE east_customer.customer (
     street_address VARCHAR(100) NOT NULL,
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(50) NOT NULL
+    country VARCHAR(50) NOT NULL,
+    origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
 );
 
-CREATE INDEX idx_east_customer_lastname_firstname ON east_customer.customer(last_name, first_name);
+CREATE INDEX idx_east_customer_lastname_firstname ON customer.customer(last_name, first_name);
 
 
 

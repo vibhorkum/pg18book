@@ -1,6 +1,6 @@
 
 
-INSERT INTO west_customer.customer 
+INSERT INTO customer.customer 
 	(
 		first_name, last_name, phone_numbers, street_address, city, postal_code, country
 	)	

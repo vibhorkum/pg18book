@@ -31,7 +31,7 @@ DROP PUBLICATION IF EXISTS west_customer_sales_publication;
 \echo '--> Creating the west publication for customers amd sales tables...'
 CREATE PUBLICATION west_customer_sales_publication
     FOR TABLE 
-        west_customer.customer, 
+        customer.customer, 
         west_sales.sales_transaction, 
         west_sales.sales_transaction_line;
 
@@ -47,7 +47,7 @@ DROP PUBLICATION IF EXISTS east_customer_sales_publication;
 \echo '--> Creating the east publication for customers amd sales tables...'
 CREATE PUBLICATION east_customer_sales_publication
     FOR TABLE 
-        east_customer.customer, 
+        customer.customer, 
         east_sales.sales_transaction, 
         east_sales.sales_transaction_line;     
 
