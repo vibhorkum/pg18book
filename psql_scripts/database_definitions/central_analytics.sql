@@ -35,17 +35,15 @@
 
 CREATE SCHEMA api;
 CREATE SCHEMA product;
-CREATE SCHEMA east_customer;
-CREATE SCHEMA west_customer;
-CREATE SCHEMA merged_customer;
+CREATE SCHEMA customer;
 CREATE SCHEMA east_sales;
 CREATE SCHEMA west_sales;
 CREATE SCHEMA merged_sales;
 
 \echo '--> Creating the search path at the database level'
 
-ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, merged_customer, merged_sales; -- permanent change
-SET SEARCH_PATH TO api, product, merged_customer, merged_sales;  --- make sure path is available in current session
+ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, customer, merged_sales; -- permanent change
+SET SEARCH_PATH TO api, product, customer, merged_sales;  --- make sure path is available in current session
 
 -- =================================================================
 --  SECTION 2: PRODUCT REFERENCE DATA
@@ -105,39 +103,12 @@ CREATE TABLE product.product_variant_price (
 --  SECTION 2: CUSTOMER DATA
 -- =================================================================
 
--- replicated data from the west ecommerce
-
-CREATE TABLE west_customer.customer (
-    id UUID NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    phone_numbers JSONB,
-    street_address VARCHAR(100) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(50) NOT NULL,
-    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
-);
-
--- replicated data from the EU
-
-CREATE TABLE east_customer.customer (
-    id UUID NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    phone_numbers JSONB,
-    street_address VARCHAR(100) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(50) NOT NULL,
-    origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
-);
 
 
 -- merged customer data data from the east and west
 
-CREATE TABLE merged_customer.customer (
-    id UUID,
+CREATE TABLE customer.customer (
+    id UUID PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone_numbers JSONB,
@@ -145,14 +116,8 @@ CREATE TABLE merged_customer.customer (
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
     country VARCHAR(50) NOT NULL,
-    origin VARCHAR(4) NOT NULL,
-    PRIMARY KEY (id, origin)
-)
-PARTITION BY LIST (origin);
-
-
-ALTER TABLE merged_customer.customer ATTACH PARTITION east_customer.customer FOR VALUES IN ('EAST');
-ALTER TABLE merged_customer.customer ATTACH PARTITION west_customer.customer FOR VALUES IN ('WEST');
+    origin VARCHAR(4) NOT NULL
+);
 
 
 -- =================================================================
@@ -206,7 +171,7 @@ CREATE TABLE merged_sales.sales_transaction(
     customer_id UUID,
     origin VARCHAR(4),
     PRIMARY KEY (id, origin),
-    FOREIGN KEY (customer_id, origin) REFERENCES merged_customer.customer (id, origin)
+    FOREIGN KEY (customer_id) REFERENCES customer.customer (id)
 ) PARTITION BY LIST (origin);
 
 ALTER TABLE merged_sales.sales_transaction ATTACH PARTITION east_sales.sales_transaction FOR VALUES IN ('EAST');
@@ -247,16 +212,9 @@ $$
   END;
 $$ LANGUAGE PLPGSQL;
 
-CREATE OR REPLACE TRIGGER tr_delete_PII_from_east_customer 
+CREATE OR REPLACE TRIGGER tr_delete_PII_from_customer 
   BEFORE INSERT OR UPDATE
-  ON east_customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
+  ON customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
 
-ALTER TABLE east_customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_east_customer;
-
-CREATE OR REPLACE TRIGGER tr_delete_PII_from_west_customer 
-  BEFORE INSERT OR UPDATE
-  ON west_customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
-
-ALTER TABLE west_customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_west_customer;
-
+ALTER TABLE customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_customer;
 

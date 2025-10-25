@@ -162,3 +162,29 @@ pgbench  -h localhost -p 5432 -d east_ecommerce_data -c 10 -n -T 60  -P 5 -f gen
   copying files from docker container docker cp pg18book:/var/log/postgresql/ /Users/marclinster/Documents/GitHub/pgbadger_test/
 
   pgbadger /Users/marclinster/Documents/GitHub/pgbadger_test/postgresql/postgresql-2025-09-25.log -o report1.html
+
+
+  Oct 25
+  * Updates to customer data: drop the east/west definitions and the need to use partitions in central analytics
+    * Rename schema to customer in
+      * east (done)
+      * west (done)
+    * add origin column with default values
+      * east (done)
+      * west  (done)
+    * update data sets
+      * east (done)
+      * west  (done)
+    * Update publications in
+      * east (done)
+      * west (done)
+    * Update central
+      * remove obsolete schemas 
+        * East (done)
+        * West (done)
+      * rename merged_customer to customer (done)
+      * remove partitioning definition  (done)
+      * update sales_transaction foreign key (done)
+      * update PII removal triggers
+    * update master progress reports
+
