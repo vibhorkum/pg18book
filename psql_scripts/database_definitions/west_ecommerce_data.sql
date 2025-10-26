@@ -22,11 +22,11 @@ CREATE SCHEMA IF NOT EXISTS api;
 CREATE SCHEMA IF NOT EXISTS product; -- replicated from ecommerce_reference_data.product.*
 CREATE SCHEMA IF NOT EXISTS inventory; -- private
 CREATE SCHEMA IF NOT EXISTS customer; -- replicated to analytics.customer.*
-CREATE SCHEMA IF NOT EXISTS west_sales; -- replicated to analytics.west_sales.*
+CREATE SCHEMA IF NOT EXISTS sales; -- replicated to analytics.sales.*
 
 \echo '--> Creating the search path at the database level'
-ALTER DATABASE west_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, west_sales; -- permanent change
-SET SEARCH_PATH TO api, product, inventory, customer, west_sales; -- make sure path is available in current session
+ALTER DATABASE west_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, sales; -- permanent change
+SET SEARCH_PATH TO api, product, inventory, customer, sales; -- make sure path is available in current session
 
 
 -- =================================================================
@@ -106,11 +106,7 @@ CREATE TABLE inventory.product_variant_inventory (
 -- =================================================================
 -- These tables represent West Coast customer data
 -- They will be replicated to the central analysis server
--- PII can be filtered out by INSERT/UPDATE triggers on the target
--- Using unique schema name to simplify aggregation on the target
--- Using prefix sequences to create readable unique IDs to allow
--- merger of the data on the Central Analytics service while 
--- maintaining the unique primary key
+-- PII will be filtered out by INSERT/UPDATE triggers on the target
 -- =================================================================
 
 
@@ -132,20 +128,20 @@ CREATE TABLE customer.customer (
 -- =================================================================
 -- These tables represent West Coast sales data
 -- They will be replicated to the central analysis server
--- Using unique schema name to simplify aggregation on the target
 -- =================================================================
 
-CREATE TABLE west_sales.sales_transaction (
+CREATE TABLE sales.sales_transaction (
     id UUID PRIMARY KEY DEFAULT uuidV7(),
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id UUID NOT NULL REFERENCES customer(id)
+    customer_id UUID NOT NULL REFERENCES customer(id),
+    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
 );
 
 -- Sales transaction line items
 
-CREATE TABLE west_sales.sales_transaction_line (
+CREATE TABLE sales.sales_transaction_line (
     id UUID PRIMARY KEY DEFAULT uuidV7(),
-    sales_transaction_id UUID NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
+    sales_transaction_id UUID NOT NULL REFERENCES sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL REFERENCES product.product_variant(id),
     qty INTEGER NOT NULL CHECK (qty > 0),
     price_at_sale NUMERIC(10, 2) NOT NULL CHECK (price_at_sale >= 0)

@@ -188,3 +188,24 @@ pgbench  -h localhost -p 5432 -d east_ecommerce_data -c 10 -n -T 60  -P 5 -f gen
       * update PII removal triggers
     * update master progress reports
 
+
+ Oct 26 
+ * Updates to sales_transaction and sales_transaction_line: drop the east/west definitions and the need to use partitions in central analytics
+  * rename schema to sales in
+    * east (done)
+    * west (done)
+  * add origin column to sales_transaction
+    * east (done)
+    * west (done)
+  * update publications
+      * east (done)
+      * west (done)
+  * Update central
+    * remove obsolete schemas 
+      * East (done)
+      * West (done)
+  * rename merged_sales to sales
+    * remove partitioning definition (done)
+    * update sales_transaction foreign key (done)
+  
+

@@ -284,11 +284,11 @@ SELECT COUNT(*) as customer_count from customer.customer;
 -- sets the variable central_analytics_customer_count
 \gset central_analytics_ 
 
-SELECT COUNT(*) as sales_transaction_count from merged_sales.sales_transaction;
+SELECT COUNT(*) as sales_transaction_count from sales.sales_transaction;
 -- sets the variable central_analytics_sales_transaction_count
 \gset central_analytics_
 
-SELECT COUNT(*) as sales_transaction_line_count from merged_sales.sales_transaction_line;
+SELECT COUNT(*) as sales_transaction_line_count from sales.sales_transaction_line;
 -- sets the variable central_analytics_sales_transaction_line_count
 \gset central_analytics_
 
