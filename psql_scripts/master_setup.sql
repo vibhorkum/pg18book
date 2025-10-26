@@ -115,12 +115,18 @@ $$ LANGUAGE PLPGSQL;
 \echo '.... database_definitions/ecommerce_reference_data.sql'
 \i database_definitions/ecommerce_reference_data.sql
 
+-- set variable to indicate origin for use in sales_transaction and customer tables
+\set origin 'WEST'
+
 \echo '.... executing database_definitions/west_ecommerce_data.sql'
 \i database_definitions/west_ecommerce_data.sql
 
 \echo '.... adding shared API definitions to west ecommerce'
 \c west_ecommerce_data
 \i database_definitions/ecommerce_api.sql
+
+-- set variable to indicate origin for use in sales_transaction and customer tables
+\set origin 'EAST'
 
 \echo '.... executing database_definitions/east_ecommerce_data.sql'
 \i database_definitions/east_ecommerce_data.sql

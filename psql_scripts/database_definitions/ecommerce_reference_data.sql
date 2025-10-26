@@ -35,10 +35,6 @@ SET SEARCH_PATH TO api, product, internal; --- make sure path is available in cu
 -- btree_gist is required for using the GIST exclusion constraint on a DATERANGE.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
-\echo '--> Creating custom ENUM types...'
--- Using ENUMs helps ensure data integrity for controlled vocabularies.
-CREATE TYPE internal.sales_geo AS ENUM ('East', 'West');
-
 
 -- =================================================================
 --  SECTION 3: TABLE DEFINITIONS
