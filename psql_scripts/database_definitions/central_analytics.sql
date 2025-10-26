@@ -11,18 +11,10 @@
              * product has product and pricing data
            * product provides definitions for 
              products and prices into schema product
-           * east_customer holds the customer table replicated from the 
-             east_ecommerce_data database
-           * west_customer holds the customer table replicated from the
-             west_ecommerce_data database
-           * customer_merged holds the customer table that assembles 
-             the west and east customer data, but filters out PII
-           * east_sales holds the east sales transactions and sales transaction lines
-           * west_sales holds the west sales transactions and sales transaction lines 
-           * sales_merged holds the sales_transaction and 
-             sales_transaction_lines tables that assembles the east and west
-             data
-            
+           * sales holds the customer table replicated from the 
+             east_ecommerce_data and west_ecommerce_data databases
+           * customer holds the customer table that assembles 
+             the west and east customer data, but filters out PII            
 ================================================================================
 
 ================================================================================
@@ -36,14 +28,12 @@
 CREATE SCHEMA api;
 CREATE SCHEMA product;
 CREATE SCHEMA customer;
-CREATE SCHEMA east_sales;
-CREATE SCHEMA west_sales;
-CREATE SCHEMA merged_sales;
+CREATE SCHEMA sales;
 
 \echo '--> Creating the search path at the database level'
 
-ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, customer, merged_sales; -- permanent change
-SET SEARCH_PATH TO api, product, customer, merged_sales;  --- make sure path is available in current session
+ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, customer, sales; -- permanent change
+SET SEARCH_PATH TO api, product, customer, sales;  --- make sure path is available in current session
 
 -- =================================================================
 --  SECTION 2: PRODUCT REFERENCE DATA
@@ -124,75 +114,22 @@ CREATE TABLE customer.customer (
 --  SECTION 2: SALES DATA
 -- =================================================================
 
--- replicated data from the west ecommerce site
--- add an origin column to be able to use it as a partion
+-- merged sales data from the east and west
 
-CREATE TABLE west_sales.sales_transaction (
-    id UUID UNIQUE NOT NULL, -- needs to be unique to support foreign key
+CREATE TABLE sales.sales_transaction(
+    id UUID PRIMARY KEY,
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id UUID,
-    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
+    customer_id UUID REFERENCES customer (id),
+    origin VARCHAR(4)
 );
 
-CREATE TABLE west_sales.sales_transaction_line (
-    id UUID NOT NULL,
-    sales_transaction_id UUID NOT NULL REFERENCES west_sales.sales_transaction(id) ON DELETE CASCADE,
-    product_variant_id INTEGER NOT NULL,
-    qty INTEGER,
-    price_at_sale NUMERIC(10, 2),
-    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
-);
-
--- replicated data from the EU
--- add an origin column to be able to use it as a partion
-
-CREATE TABLE east_sales.sales_transaction (
-    id UUID UNIQUE NOT NULL, -- needs to be unique to support foreign key
-    transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id UUID,
-    origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
-);
-
-CREATE TABLE east_sales.sales_transaction_line (
-    id UUID NOT NULL,
-    sales_transaction_id UUID NOT NULL REFERENCES east_sales.sales_transaction(id) ON DELETE CASCADE,
-    product_variant_id INTEGER NOT NULL,
-    qty INTEGER,
-    price_at_sale NUMERIC(10, 2),
-    origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
-);
-
-
--- merged sales data
-
-CREATE TABLE merged_sales.sales_transaction(
+CREATE TABLE sales.sales_transaction_line (
     id UUID,
-    transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id UUID,
-    origin VARCHAR(4),
-    PRIMARY KEY (id, origin),
-    FOREIGN KEY (customer_id) REFERENCES customer.customer (id)
-) PARTITION BY LIST (origin);
-
-ALTER TABLE merged_sales.sales_transaction ATTACH PARTITION east_sales.sales_transaction FOR VALUES IN ('EAST');
-ALTER TABLE merged_sales.sales_transaction ATTACH PARTITION west_sales.sales_transaction FOR VALUES IN ('WEST');
-
-
-CREATE TABLE merged_sales.sales_transaction_line (
-    id UUID,
-    sales_transaction_id UUID,
+    sales_transaction_id UUID REFERENCES sales_transaction (id),
     product_variant_id INTEGER NOT NULL,
     qty INTEGER,
-    price_at_sale NUMERIC(10, 2),
-    origin VARCHAR(4),
-    PRIMARY KEY (id, origin),
-    FOREIGN KEY (sales_transaction_id, origin) REFERENCES merged_sales.sales_transaction (id, origin),
-    FOREIGN KEY (product_variant_id) REFERENCES product.product_variant (id)
-) PARTITION BY LIST (origin);
-
-ALTER TABLE merged_sales.sales_transaction_line ATTACH PARTITION east_sales.sales_transaction_line FOR VALUES IN ('EAST');
-ALTER TABLE merged_sales.sales_transaction_line ATTACH PARTITION west_sales.sales_transaction_line FOR VALUES IN ('WEST');
-
+    price_at_sale NUMERIC(10, 2)
+);
 
 /******************************************************************************
     Logic to delete PII from the customer data after replication to 

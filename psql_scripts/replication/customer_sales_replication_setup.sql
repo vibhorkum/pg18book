@@ -32,8 +32,8 @@ DROP PUBLICATION IF EXISTS west_customer_sales_publication;
 CREATE PUBLICATION west_customer_sales_publication
     FOR TABLE 
         customer.customer, 
-        west_sales.sales_transaction, 
-        west_sales.sales_transaction_line;
+        sales.sales_transaction, 
+        sales.sales_transaction_line;
 
 
 \c :publisher_db3
@@ -48,8 +48,8 @@ DROP PUBLICATION IF EXISTS east_customer_sales_publication;
 CREATE PUBLICATION east_customer_sales_publication
     FOR TABLE 
         customer.customer, 
-        east_sales.sales_transaction, 
-        east_sales.sales_transaction_line;     
+        sales.sales_transaction, 
+        sales.sales_transaction_line;     
 
 -- ================================================================================
 --  Step 2: Create the customer and sales subscriptions on central analytics

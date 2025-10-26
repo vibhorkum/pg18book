@@ -20,12 +20,12 @@ CREATE SCHEMA IF NOT EXISTS api;
 CREATE SCHEMA IF NOT EXISTS product; -- replicated from ecommerce_reference_data.product.*
 CREATE SCHEMA IF NOT EXISTS inventory; -- private
 CREATE SCHEMA IF NOT EXISTS customer; -- replicated to analytics.customer.*
-CREATE SCHEMA IF NOT EXISTS east_sales; -- replicated to analytics.east_sales.*
+CREATE SCHEMA IF NOT EXISTS sales; -- replicated to analytics.sales.*
 
 --- this needs to change. Search paths definitions needs to move into the api calls
 \echo '--> Creating the search path at the database level'
-ALTER DATABASE east_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, east_sales; -- permanent change
-SET SEARCH_PATH TO api, product, inventory, customer, east_sales; -- make sure path is available in current session
+ALTER DATABASE east_ecommerce_data SET SEARCH_PATH TO api, product, inventory, customer, sales; -- permanent change
+SET SEARCH_PATH TO api, product, inventory, customer, sales; -- make sure path is available in current session
 
 
 -- =================================================================
@@ -105,11 +105,7 @@ CREATE TABLE inventory.product_variant_inventory (
 -- =================================================================
 -- These tables represent EAST Cost customer data
 -- They will be replicated to the central analysis server
--- PII can be filtered out by INSERT/UPDATE triggers on the target
--- Using unique schema name to simplify aggregation on the target
--- Using prefix sequences to create readable unique IDs to allow
--- merger of the data on the Central Analytics service while 
--- maintaining the unique primary key
+-- PII will be filtered out by INSERT/UPDATE triggers on the target
 -- =================================================================
 
 
@@ -135,23 +131,23 @@ CREATE INDEX idx_east_customer_lastname_firstname ON customer.customer(last_name
 -- =================================================================
 -- These tables represent the east coast sales data
 -- They will be replicated to the central analysis server
--- Using unique schema name to simplify aggregation on the target
 -- =================================================================
 
 
-CREATE TABLE east_sales.sales_transaction (
+CREATE TABLE sales.sales_transaction (
     id UUID PRIMARY KEY DEFAULT uuidV7(),
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    customer_id UUID NOT NULL REFERENCES customer(id)
+    customer_id UUID NOT NULL REFERENCES customer(id),
+    origin VARCHAR(4) NOT NULL DEFAULT 'EAST'
 );
 
 
 
 -- Sales transaction line items
 
-CREATE TABLE east_sales.sales_transaction_line (
+CREATE TABLE sales.sales_transaction_line (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    sales_transaction_id UUID NOT NULL REFERENCES east_sales.sales_transaction(id) ON DELETE CASCADE,
+    sales_transaction_id UUID NOT NULL REFERENCES sales.sales_transaction(id) ON DELETE CASCADE,
     product_variant_id INTEGER NOT NULL REFERENCES product.product_variant(id),
     qty INTEGER NOT NULL CHECK (qty > 0),
     price_at_sale NUMERIC(10, 2) NOT NULL CHECK (price_at_sale >= 0)
@@ -162,7 +158,6 @@ CREATE TABLE east_sales.sales_transaction_line (
 Shared East/West API Definitions are in database_definitions/east_ecommerce_data.sql
 
 */
-
 
 
 \echo '*** Script Finished Successfully ***'
