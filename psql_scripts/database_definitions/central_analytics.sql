@@ -126,7 +126,7 @@ CREATE TABLE sales.sales_transaction(
 CREATE TABLE sales.sales_transaction_line (
     id UUID,
     sales_transaction_id UUID REFERENCES sales_transaction (id),
-    product_variant_id INTEGER NOT NULL,
+    product_variant_id INTEGER NOT NULL REFERENCES product_variant (id),
     qty INTEGER,
     price_at_sale NUMERIC(10, 2)
 );
