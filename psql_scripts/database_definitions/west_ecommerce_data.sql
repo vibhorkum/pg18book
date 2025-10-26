@@ -119,10 +119,10 @@ CREATE TABLE customer.customer (
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
     country VARCHAR(50) NOT NULL,
-    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
+    origin VARCHAR(4) NOT NULL DEFAULT :'origin' -- variable set in master_setup.sql
 );
 
-
+CREATE INDEX idx_east_customer_lastname_firstname ON customer.customer(last_name, first_name);
 -- =================================================================
 --  SECTION 3: WEST COAST SALES DATA
 -- =================================================================
@@ -134,7 +134,7 @@ CREATE TABLE sales.sales_transaction (
     id UUID PRIMARY KEY DEFAULT uuidV7(),
     transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
     customer_id UUID NOT NULL REFERENCES customer(id),
-    origin VARCHAR(4) NOT NULL DEFAULT 'WEST'
+    origin VARCHAR(4) NOT NULL DEFAULT :'origin' -- variable set in master_setup.sql
 );
 
 -- Sales transaction line items
