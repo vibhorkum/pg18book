@@ -214,6 +214,7 @@ Oct 28:
   * define what to do with the pgadmin files (I think they should be removed)
   * central definition for the login information for all the roles
   * central definition of all the replication information
-  * remove us_ecommerce_data_seed
-  * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels and call it east_ecommerce_customer.sql
-  * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels and call it west_ecommerce_customer.sql
+  * remove us_ecommerce_data_seed (done)
+  * remove customer_data_generation.sql (done)
+  * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels (done)
+  * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels (done)
