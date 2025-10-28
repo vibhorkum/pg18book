@@ -92,7 +92,11 @@ CREATE TABLE product.product_variant_price (
 -- =================================================================
 --  SECTION 2: CUSTOMER DATA
 -- =================================================================
-
+-- This table will be populated by logical replication from the
+-- 'east_cost_ecommerce' and 'west_coast_ecommerce' databases. Their 
+-- structure must match
+-- the publisher's definition exactly. Do NOT insert data manually.
+-- =================================================================
 
 
 -- merged customer data data from the east and west
@@ -113,8 +117,11 @@ CREATE TABLE customer.customer (
 -- =================================================================
 --  SECTION 2: SALES DATA
 -- =================================================================
-
--- merged sales data from the east and west
+-- Thes tables will be populated by logical replication from the
+-- 'east_cost_ecommerce' and 'west_coast_ecommerce' databases. Their 
+-- structure must match
+-- the publisher's definition exactly. Do NOT insert data manually.
+-- =================================================================
 
 CREATE TABLE sales.sales_transaction(
     id UUID PRIMARY KEY,
@@ -132,10 +139,10 @@ CREATE TABLE sales.sales_transaction_line (
 );
 
 /******************************************************************************
-    Logic to delete PII from the customer data after replication to 
+    Logic to mask PII from the customer data after replication to 
     to central analytics.
     PII: first_name, last_name, street_address, phone_numbers
-    PII is deleted upon INSERT and UPDATE
+    PII is masked upon INSERT and UPDATE
 ******************************************************************************/
 
 CREATE OR REPLACE FUNCTION api.sf_delete_PII_from_customer () 
