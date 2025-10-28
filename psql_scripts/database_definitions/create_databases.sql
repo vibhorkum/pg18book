@@ -1,11 +1,16 @@
+
 /*
-Script to be run as member of master_dba role
-Create the databases
-    - ecommerce_reference
-    - east_ecommerce
-    - west_ecommerce
-    - central analytics
-    -- aidb
+================================================================================
+  PSQL SCRIPT FOR CENTRAL ANALYTICS DATABASE
+================================================================================
+  OWNER: Superuser
+  PURPOSE: Creates the databases
+           * ecommerce_reference_data
+           * east_ecommerce_data
+           * west_ecommerce_data
+           * central_analytics
+           * aidb          
+================================================================================
 */
 
 \echo '[DATABASE PREP] ==> Preparing to drop and recreate the database ecommerce_reference_data'
@@ -52,7 +57,7 @@ CREATE DATABASE west_ecommerce_data;
 
 \echo '[DATABASE PREP] ==> Preparing to drop and recreate the database central_analytics.'
 -- Terminate all active connections to the target database before dropping it.
--- This is a more controlled approach than using WITH (FORCE).
+
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = 'central_analytics' AND pid <> pg_backend_pid();
@@ -66,7 +71,7 @@ CREATE DATABASE central_analytics;
 
 \echo '[DATABASE PREP] ==> Preparing to drop and recreate the database aidb.'
 -- Terminate all active connections to the target database before dropping it.
--- This is a more controlled approach than using WITH (FORCE).
+
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = 'aidb' AND pid <> pg_backend_pid();

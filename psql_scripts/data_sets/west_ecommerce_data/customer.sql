@@ -1,4 +1,6 @@
-
+-- =================================================================
+-- Data for table customer.customer in the west_ecommerce_data database
+-- =================================================================
 
 INSERT INTO customer.customer 
 	(
