@@ -192,7 +192,7 @@ and the sequences need to be set to a value above the highest hard coded value.
 
 \c east_ecommerce_data
 -- load the customer data first from file.
-\i data_sets/east_ecommerce_data/east_customer/customer.sql
+\i data_sets/east_ecommerce_data/customer.sql
 -- then generate inventory and sales data
 \i data_set_generation/generate_inventory.sql
 \i data_set_generation/generate_sales.sql
@@ -202,7 +202,7 @@ and the sequences need to be set to a value above the highest hard coded value.
 
 \c west_ecommerce_data
 -- load the customer data first from file
-\i data_sets/west_ecommerce_data/west_customer/customer.sql
+\i data_sets/west_ecommerce_data/customer.sql
 -- then generate inventory and sales data
 \i data_set_generation/generate_inventory.sql
 \i data_set_generation/generate_sales.sql
