@@ -164,6 +164,11 @@ pgbench  -h localhost -p 5432 -d east_ecommerce_data -c 10 -n -T 60  -P 5 -f gen
   pgbadger /Users/marclinster/Documents/GitHub/pgbadger_test/postgresql/postgresql-2025-09-25.log -o report1.html
 
 
+Hierachical role membership: 
+SELECT a.oid, a.rolname 
+WHERE pg_has_role('product_price_manager', a.oid, 'member');  
+
+
   Oct 25
   * Updates to customer data: drop the east/west definitions and the need to use partitions in central analytics
     * Rename schema to customer in
@@ -219,3 +224,13 @@ Oct 28:
   * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels (done)
   * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels (done)
   * roles need to be updated to align with Chapter 3
+  * Permissions need to be cimplemented
+
+
+  Nov 10
+
+  List triggers for IVM
+  -- View the automatically created triggers
+SELECT tgname, tgrelid::regclass::text AS table_name
+FROM pg_trigger
+WHERE tgname ILIKE '%ivm%';
