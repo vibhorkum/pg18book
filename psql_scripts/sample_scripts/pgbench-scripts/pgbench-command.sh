@@ -33,7 +33,7 @@ psql -h localhost -p 5432 -d east_ecommerce_data -c "SELECT * FROM pg_stat_state
 # the files are run in the order specified, with the @n indicating the relative frequency of execution
 pgbench  -h localhost -p 5432 \
 -d east_ecommerce_data \
--c 10 -n -T 30  -P 5 \
+-c 10 -n -T 120  -P 5 \
 -f gen-inventory.sql@10 \
 -f gen-sales-transactions.sql@4 \
 -f delete-sales-transaction-line.sql@1 \
