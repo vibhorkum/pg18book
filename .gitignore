@@ -1,3 +1,4 @@
 psql_scripts/RBACtest.sql
 scratchpad.sql
 marc_notes.txt
+psql_scripts/sample_scripts/pgivm_test.sql

@@ -138,6 +138,9 @@ $$ LANGUAGE PLPGSQL;
 \echo '.... executing database_definitions/central_analytics.sql'
 \i database_definitions/central_analytics.sql
 
+\echo '... the star schemas to central_analytics'
+\i database_definitions/central_analytics_stars.sql
+
 \echo '.... executing database_definitions/aidb.sql'
 \i database_definitions/aidb.sql
 
@@ -179,6 +182,8 @@ $$ LANGUAGE PLPGSQL;
 
 \c postgres 
 CALL check_subscriptions();
+
+SELECT pg_sleep (5);
 
 /*
 This resets the sequences used by the product definitions so that the API calls 
