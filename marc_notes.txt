@@ -234,3 +234,8 @@ Oct 28:
 SELECT tgname, tgrelid::regclass::text AS table_name
 FROM pg_trigger
 WHERE tgname ILIKE '%ivm%';
+
+Nov 14
+* Change publications to filter out PII on customer table
+* Change customer table definition in central analytics to default to masked information
+* test insert/update/delete

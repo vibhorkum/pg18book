@@ -104,9 +104,10 @@ CREATE TABLE product.product_variant_price (
 
 CREATE TABLE customer.customer (
     id UUID PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    phone_numbers JSONB,
+    -- PII fields are masked (see replication setup scripts for column-level filtering)
+    first_name VARCHAR(50) DEFAULT 'masked',
+    last_name VARCHAR(50) DEFAULT 'masked',
+    phone_numbers JSONB DEFAULT '{"home": "+1 (555) 123-345", "mobile": "+1 (555) 456-789"}',
     street_address VARCHAR(100) NOT NULL,
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
@@ -139,27 +140,4 @@ CREATE TABLE sales.sales_transaction_line (
     price_at_sale NUMERIC(10, 2)
 );
 
-/******************************************************************************
-    Logic to mask PII from the customer data after replication to 
-    to central analytics.
-    PII: first_name, last_name, street_address, phone_numbers
-    PII is masked upon INSERT and UPDATE
-******************************************************************************/
-
-CREATE OR REPLACE FUNCTION api.sf_delete_PII_from_customer () 
-RETURNS TRIGGER AS
-$$
-  BEGIN
-    NEW.first_name = 'masked';
-    NEW.last_name = 'masked';
-    NEW.phone_numbers = '{"home": "+1 (555) 123-345", "mobile": "+1 (555) 456-789"}';
-    RETURN NEW;
-  END;
-$$ LANGUAGE PLPGSQL;
-
-CREATE OR REPLACE TRIGGER tr_delete_PII_from_customer 
-  BEFORE INSERT OR UPDATE
-  ON customer.customer FOR EACH ROW EXECUTE FUNCTION api.sf_delete_PII_from_customer();
-
-ALTER TABLE customer.customer ENABLE REPLICA TRIGGER tr_delete_PII_from_customer;
-
+-- =================================================================

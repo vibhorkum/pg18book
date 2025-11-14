@@ -31,7 +31,8 @@ DROP PUBLICATION IF EXISTS west_customer_sales_publication;
 \echo '--> Creating the west publication for customers amd sales tables...'
 CREATE PUBLICATION west_customer_sales_publication
     FOR TABLE 
-        customer.customer, 
+        -- use column-level filter to avoid sharing PII
+        customer.customer (id, street_address, city, postal_code, country, origin), 
         sales.sales_transaction, 
         sales.sales_transaction_line;
 
@@ -47,7 +48,8 @@ DROP PUBLICATION IF EXISTS east_customer_sales_publication;
 \echo '--> Creating the east publication for customers amd sales tables...'
 CREATE PUBLICATION east_customer_sales_publication
     FOR TABLE 
-        customer.customer, 
+        -- use column-level filter to avoid sharing PII
+        customer.customer (id, street_address, city, postal_code, country, origin), 
         sales.sales_transaction, 
         sales.sales_transaction_line;     
 
