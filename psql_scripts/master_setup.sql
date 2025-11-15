@@ -64,7 +64,7 @@ DROP PROCEDURE IF EXISTS check_subscriptions;
 CREATE PROCEDURE check_subscriptions () AS
 $$
 DECLARE 
-    v_array_subscriptions text[] := ARRAY['east_product_data_sub','west_product_data_sub', 'central_analytics_product_sub', 'aidb_product_sub'];
+    v_array_subscriptions text[] := ARRAY['east_product_data_sub','west_product_data_sub', 'central_analytics_product_sub', 'aidb_product_sub', 'west_customer_sales_data_sub', 'east_customer_sales_data_sub'];
     v_lsn_diff INTEGER := 0;
     v_total_lsn_diff INTEGER := 0;
     v_sub TEXT;
@@ -77,15 +77,15 @@ BEGIN
         v_total_lsn_diff :=0;
         v_loop_ctr := v_loop_ctr + 1;
         FOREACH v_sub IN ARRAY v_array_subscriptions LOOP
-            RAISE DEBUG 'Checking on %', v_sub;
+            RAISE NOTICE 'Checking on %', v_sub;
             SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) INTO v_lsn_diff
                 FROM pg_stat_replication
             WHERE application_name = v_sub;
             IF v_lsn_diff > 0 THEN 
-                RAISE DEBUG 'Subscription % has a LSN diff of %', v_sub, v_lsn_diff;
+                RAISE NOTICE 'Subscription % has a LSN diff of %', v_sub, v_lsn_diff;
                 v_total_lsn_diff := v_total_lsn_diff + v_lsn_diff;
             ELSE 
-                RAISE DEBUG 'Subscription % is caught up', v_sub;
+                RAISE NOTICE 'Subscription % is caught up', v_sub;
             END IF;
         END LOOP;
         -- if v_total_lsn_diff = 0, then all subscriptions have caught up. Exit loop
@@ -182,8 +182,6 @@ $$ LANGUAGE PLPGSQL;
 
 \c postgres 
 CALL check_subscriptions();
-
-SELECT pg_sleep (5);
 
 /*
 This resets the sequences used by the product definitions so that the API calls 
