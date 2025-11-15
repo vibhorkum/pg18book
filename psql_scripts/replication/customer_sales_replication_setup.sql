@@ -89,7 +89,6 @@ CREATE SUBSCRIPTION :sub_slot_5
 SET vars.slot_4 TO :'sub_slot_4';
 
 \echo 'Connected back to publisher to manage replication slots...'
-COMMIT;
 -- Conditionally create the  slot to avoid errors on re-runs
 DO $$
 DECLARE
