@@ -239,3 +239,7 @@ Nov 14
 * Change publications to filter out PII on customer table
 * Change customer table definition in central analytics to default to masked information
 * test insert/update/delete
+
+Nov 16
+
+psql -d central_analytics -c '\copy brand to stdout' | psql -d ca2 -c '\copy product.brand from stdin'
