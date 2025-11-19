@@ -33,8 +33,8 @@ CREATE SCHEMA sales;
 \echo '--> Creating the search path at the database level'
 
 -- the analytics schema will be used for views and reporting
-ALTER DATABASE central_analytics SET SEARCH_PATH TO analytics, api, product, customer, sales; -- permanent change
-SET SEARCH_PATH TO analytics, api, product, customer, sales;  --- make sure path is available in current session
+ALTER DATABASE central_analytics SET SEARCH_PATH TO api, product, customer, sales; -- permanent change
+SET SEARCH_PATH TO api, product, customer, sales;  --- make sure path is available in current session
 
 -- =================================================================
 --  SECTION 2: PRODUCT REFERENCE DATA
