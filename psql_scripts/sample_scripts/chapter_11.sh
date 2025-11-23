@@ -1,3 +1,23 @@
+
+#==============================================================================
+#
+#                        Code samples for Chapter 11
+#
+#       1) see psql_scripts/sample_scripts/chapter_11.sql for SQL code
+#          to create the database central_analytics_bcp and define the tables
+#          same as in central_analytics
+#          this code has to be executed first before running this bash script            
+#       2) code to show the alternate way to populate the DWH is shown below
+#          It uses psql's \copy command to bulk load data from
+#          east_ecommerce_data and west_ecommerce_data into central_analytics_bcp
+#          see comments in the code for details
+#          this sample assumes that the user name, password, port and host
+#          are set up as environment variables
+#          remember to execute CHMOD +x chapter_11.sh to make it executable
+#==============================================================================
+
+
+
 # bash command file to copy the data from east_ecommerce, west_ecommerce, and ecommerce_reference
 
 # each table is truncated before loading to avoid duplicates
@@ -65,3 +85,4 @@ echo '--> Copying sales transaction line from west ecommerce'
 psql -d west_ecommerce_data -c 'COPY sales.sales_transaction_line TO stdout' |\
         psql -d central_analytics_bcp -c 'COPY sales.sales_transaction_line FROM stdin'    
 
+#==============================================================================
