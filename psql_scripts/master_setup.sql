@@ -21,11 +21,15 @@
 \set ON_ERROR_STOP on
 SET client_min_messages TO NOTICE;
 
-
 \c postgres
 
 --- =================================================================
----  Step 0: Load Replication Configuration Variables and Check Server Configuration
+---  Step 0: Check Server Configuration and Load Replication 
+-- and Helper Functions
+--- =================================================================
+
+
+-- load replication configuration variables
 \i replication_configuration.sql
 
 -- load helper functions
