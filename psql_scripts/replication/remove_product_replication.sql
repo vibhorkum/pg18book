@@ -18,7 +18,7 @@
 \set sub_slot_4 'aidb_product_sub'
 -- SET vars.sub_slot_1 TO :'sub_slot_1';
 
-\echo '*** Rollback Script Started ***'
+\echo '*** Removal Script Started ***'
 
 -- =================================================================
 --  Step 1: Disable and Drop Subscriptions on the Subscriber
