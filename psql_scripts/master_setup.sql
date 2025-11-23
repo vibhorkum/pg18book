@@ -24,84 +24,23 @@ SET client_min_messages TO NOTICE;
 
 \c postgres
 
-\echo 'Checking server configuration'
-/*
-Check the underlying configuration
-- wal_level = logical
-- logging_collector=on 
-- max_logical_replication_workers>=10 
-- log_statement=ddl
-*/
-DO 
-$$
-DECLARE 
-    v_rep_workers INTEGER;
-    v_wal_level TEXT;
-BEGIN
-    SELECT setting INTO v_rep_workers
-        FROM pg_settings 
-        WHERE name = 'max_logical_replication_workers';
-    IF v_rep_workers < 10 THEN
-        RAISE EXCEPTION 'Parameter max_logical_replication_workers set to %. Must be above 10', v_rep_workers;
-    END IF;
-        SELECT setting::TEXT INTO v_wal_level
-        FROM pg_settings 
-        WHERE name = 'wal_level';
-    IF v_wal_level <> 'logical' THEN
-        RAISE EXCEPTION 'Parameter wal_level set to %. Must be logical', v_wal_level;
-    END IF;
-END 
-$$;
+--- =================================================================
+---  Step 0: Load Replication Configuration Variables and Check Server Configuration
+\i replication_configuration.sql
 
+-- load helper functions
+\i setup_helper_functions.sql
+
+
+\echo 'Checking server configuration'
+CALL check_server_configuration();
 \echo 'Server config ok'
 
 -- helper function to check progress of subscriptions
 -- defined in database postgres
 -- will be dropped at the end of the setup script
 
-DROP PROCEDURE IF EXISTS check_subscriptions;
 
-CREATE PROCEDURE check_subscriptions () AS
-$$
-DECLARE 
-    v_array_subscriptions text[] := ARRAY['east_product_data_sub','west_product_data_sub', 'central_analytics_product_sub', 'aidb_product_sub', 'west_customer_sales_data_sub', 'east_customer_sales_data_sub'];
-    v_lsn_diff INTEGER := 0;
-    v_total_lsn_diff INTEGER := 0;
-    v_sub TEXT;
-    v_loop_ctr INTEGER := 0;
-    v_wait_limit INTEGER := 100; -- maximum wait loops
-BEGIN
-    RAISE NOTICE 'Checking that the following subscriptions are caught up: %', ARRAY_TO_STRING(v_array_subscriptions, ', ');
-    LOOP
-        -- check if any subscription has a lsn diff > 0
-        v_total_lsn_diff :=0;
-        v_loop_ctr := v_loop_ctr + 1;
-        FOREACH v_sub IN ARRAY v_array_subscriptions LOOP
-            RAISE NOTICE 'Checking on %', v_sub;
-            SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) INTO v_lsn_diff
-                FROM pg_stat_replication
-            WHERE application_name = v_sub;
-            IF v_lsn_diff > 0 THEN 
-                RAISE NOTICE 'Subscription % has a LSN diff of %', v_sub, v_lsn_diff;
-                v_total_lsn_diff := v_total_lsn_diff + v_lsn_diff;
-            ELSE 
-                RAISE NOTICE 'Subscription % is caught up', v_sub;
-            END IF;
-        END LOOP;
-        -- if v_total_lsn_diff = 0, then all subscriptions have caught up. Exit loop
-        IF v_total_lsn_diff = 0 THEN
-            RAISE NOTICE 'All subscriptions are caught up';
-            EXIT;
-        -- if we tried too often, abort as there is a problem.
-        ELSEIF v_loop_ctr > v_wait_limit THEN   
-            RAISE EXCEPTION 'Stopped waiting for replications to catch up after % loops', v_loop_ctr;
-        -- wait 1 sec and try again
-        ELSE
-            PERFORM PG_SLEEP(1);
-        END IF;
-    END LOOP;
-END
-$$ LANGUAGE PLPGSQL;
 
 -- start Step 1
 
@@ -182,6 +121,7 @@ $$ LANGUAGE PLPGSQL;
 
 
 \c postgres 
+-- make sure replication has caught up
 CALL check_subscriptions();
 
 /*
@@ -197,8 +137,11 @@ and the sequences need to be set to a value above the highest hard coded value.
 \c east_ecommerce_data
 -- load the customer data first from file.
 \i data_sets/east_ecommerce_data/customer.sql
--- then generate inventory and sales data
+-- then generate inventory
 \i data_set_generation/generate_inventory.sql
+-- wait 1 sec to make sure that inventory data is committed and visible
+SELECT PG_SLEEP(1);
+-- then generate sales data
 \i data_set_generation/generate_sales.sql
 
 
@@ -209,6 +152,9 @@ and the sequences need to be set to a value above the highest hard coded value.
 \i data_sets/west_ecommerce_data/customer.sql
 -- then generate inventory and sales data
 \i data_set_generation/generate_inventory.sql
+-- wait 1 sec to make sure that inventory data is committed and visible
+SELECT PG_SLEEP(1);
+-- then generate sales data
 \i data_set_generation/generate_sales.sql
 
 \echo 'Customer and sales data loaded'
@@ -221,9 +167,8 @@ CALL check_subscriptions();
 -- collect data to make sure all data has arrived in east/west/central/aidb
 \echo 'Checking replication results ...'
 
-\echo 'Reference data counts on ecommerce_reference_data'
+\echo 'Data counts on ecommerce_reference_data'
 \c ecommerce_reference_data
-
 SELECT COUNT(*) as product_count from product;
 -- sets the variable ecommerce_product_count
 \gset ecommerce_
