@@ -4,23 +4,7 @@
 --  Subscriber: west_ecommerce_data
 -- =================================================================
 
--- Step 0: Define variables for easier maintenance
-\set publisher_db1 'ecommerce_reference_data'
 
-
-\set subscriber_db1 'west_ecommerce_data'
-\set subscriber_db2 'east_ecommerce_data'
-\set subscriber_db3 'central_analytics'
-\set subscriber_db4 'aidb'
-
-
--- this needs to change
-\set publisher_conn_string1 'host=localhost port=5432 dbname=ecommerce_reference_data user=postgres password=postgres'
-
-\set sub_slot_1 'west_product_data_sub'
-\set sub_slot_2 'east_product_data_sub'
-\set sub_slot_3 'central_analytics_product_sub'
-\set sub_slot_4 'aidb_product_sub'
 
 \echo '*** Replication Setup Script Started ***'
 
