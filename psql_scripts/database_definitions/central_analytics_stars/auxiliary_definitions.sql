@@ -164,3 +164,34 @@ INSERT INTO auxiliary.sales_territory (territory_id, us_state_code, territory_na
     (49, 'CO', 'West'),
     (50, 'AK', 'West'),
     (51, 'HI', 'West');
+
+
+-- table of sales organization with managers and territory assignments
+DROP TABLE IF EXISTS auxiliary.sales_organization CASCADE;
+CREATE TABLE auxiliary.sales_organization (
+    employee_id VARCHAR(10) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    title VARCHAR(100),
+    territory_id INTEGER REFERENCES auxiliary.sales_territory(territory_id),
+    manager_id VARCHAR(10) REFERENCES auxiliary.sales_organization(employee_id),
+    sales_target NUMERIC DEFAULT 0
+);
+
+INSERT INTO auxiliary.sales_organization (employee_id, first_name, last_name, title, territory_id, manager_id, sales_target) VALUES
+    ('E001', 'John', 'Smith', 'VP, Sales', 1, NULL, 0),
+    ('E002', 'Jane', 'Doe',  'Director, Sales', 2,'E001', 0),
+    ('E003', 'Jim', 'Brown', 'Director, Sales', 3, 'E001', 0),
+    ('E004', 'Emily', 'Davis',  'Director, Sales', 4,'E001', 0),
+    ('E005', 'Michael', 'Wilson',  'Director, Sales', 5,'E001', 0),
+    ('E006', 'Sarah', 'Johnson', 'Sales Mgr', 6, 'E002',0),
+    ('E007', 'David', 'Lee',  'Account Exec', 7, 'E002', 150000),
+    ('E008', 'Laura', 'Garcia', 'Account Exec', 8, 'E003', 130000),
+    ('E009', 'Robert', 'Martinez', 'Account Exec', 9, 'E003', 140000),
+    ('E010', 'Linda', 'Rodriguez', 'Account Exec', 10, 'E004', 160000),
+    ('E011', 'James', 'Hernandez', 'Account Exec', 11, 'E004', 155000),
+    ('E012', 'Barbara', 'Lopez', 'Account Exec', 12, 'E005', 145000),
+    ('E013', 'William', 'Gonzalez', 'Account Exec', 13, 'E005', 150000),
+    ('E014', 'Elizabeth', 'Wilson', 'Account Exec', 14, 'E006', 140000),
+    ('E015', 'Richard', 'Anderson', 'Account Exec', 15, 'E006', 135000);
+
