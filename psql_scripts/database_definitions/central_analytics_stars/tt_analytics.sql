@@ -11,7 +11,7 @@
             * Schema: tt_analytics
             * 3 dimensions: date, product, customer location
             * 1 fact table: sales      
-            * Primary keys and indexes for performance defined on fact and dimension tables
+            * Indexes for performance defined on fact and dimension tables
             * date dimension table generated from a date series
             * trigger-based maintenance of product and customer-location dimension dimensions
                 * Customer-location dimension maintained via triggers on customer table
@@ -30,15 +30,18 @@ CREATE SCHEMA tt_analytics;
 -- create the date dimension table. It is not dependant on replication so we can just create it directly from a date series
 
 DROP TABLE IF EXISTS tt_analytics.dim_date CASCADE;
-CREATE TABLE tt_analytics.dim_date
-(date_key DATE PRIMARY KEY,
-    day INTEGER NOT NULL,
-    month INTEGER NOT NULL,
-    quarter INTEGER NOT NULL,
-    year INTEGER NOT NULL,
-    day_of_week INTEGER NOT NULL,
-    is_weekend BOOLEAN NOT NULL
+CREATE TABLE tt_analytics.dim_date(
+    date_key DATE,
+    day INTEGER,
+    month INTEGER,
+    quarter INTEGER,
+    year INTEGER,
+    day_of_week INTEGER,
+    is_weekend BOOLEAN
 );  
+
+CREATE UNIQUE INDEX idx_dim_date ON tt_analytics.dim_date(date_key);
+
 
 INSERT INTO tt_analytics.dim_date (date_key, day, month, quarter, year, day_of_week, is_weekend)
 SELECT
@@ -53,11 +56,13 @@ FROM
     GENERATE_SERIES('2020-01-01'::DATE, '2030-12-31'::DATE, INTERVAL '1 day') AS d;
 
 
+
+
 -- create the customer location dimension table  
 
 DROP TABLE IF EXISTS tt_analytics.dim_customer_location CASCADE;
 CREATE TABLE tt_analytics.dim_customer_location (
-    customer_id UUID PRIMARY KEY,
+    customer_id UUID,
     zipcode CHAR(5),
     city VARCHAR(100),
     state_code CHAR(2),
@@ -67,14 +72,14 @@ CREATE TABLE tt_analytics.dim_customer_location (
     country VARCHAR(50)
 );
 
+CREATE UNIQUE INDEX idx_dim_customer_location ON tt_analytics.dim_customer_location (customer_id);
+
 -- create the triggers and functions to maintain the dim_customer_location table
 
 CREATE OR REPLACE FUNCTION tt_analytics.sf_insert_customer () 
 RETURNS TRIGGER AS
 $$
   BEGIN
-    RAISE NOTICE 'Inserting customer location for customer_id: %', NEW.id;
-    -- RAISE NOTICE 'Parsed state_code: %', auxiliary.parse_state_postalcode(NEW.postal_code);
     INSERT INTO tt_analytics.dim_customer_location (
         customer_id, zipcode, city, state_code, state_name, sales_territory, geographic_region, country)
     VALUES (
@@ -117,6 +122,9 @@ $$
     RETURN OLD;
   END;
 $$ LANGUAGE PLPGSQL;    
+
+-- Triggers on the base tables
+
 CREATE TRIGGER tr_insert_customer 
   AFTER INSERT
   ON customer.customer FOR EACH ROW EXECUTE FUNCTION tt_analytics.sf_insert_customer(); 
@@ -126,6 +134,7 @@ CREATE TRIGGER tr_update_customer
 CREATE TRIGGER tr_delete_customer 
   AFTER DELETE
   ON customer.customer FOR EACH ROW EXECUTE FUNCTION tt_analytics.sf_delete_customer();
+
 -- enable the replica triggers
 ALTER TABLE customer.customer ENABLE REPLICA TRIGGER tr_insert_customer;
 ALTER TABLE customer.customer ENABLE REPLICA TRIGGER tr_update_customer;
@@ -135,7 +144,7 @@ ALTER TABLE customer.customer ENABLE REPLICA TRIGGER tr_delete_customer;
 -- create the product dimension table   
 DROP TABLE IF EXISTS tt_analytics.dim_product CASCADE;
 CREATE TABLE tt_analytics.dim_product (
-    product_variant_id INTEGER PRIMARY KEY,
+    product_variant_id INTEGER,
     attributes JSONB,
     current_price NUMERIC(10,2),
     size VARCHAR(20),
@@ -146,6 +155,8 @@ CREATE TABLE tt_analytics.dim_product (
     co_name VARCHAR(100),
     co_alpha3_code VARCHAR(3)
 );
+
+CREATE UNIQUE INDEX idx_dim_product ON tt_analytics.dim_product (product_variant_id);
 
 -- create the triggers and functions to maintain the dim_product table
 -- this will include triggers on 
@@ -161,6 +172,7 @@ CREATE OR REPLACE FUNCTION tt_analytics.sf_upsert_product_variant ()
 RETURNS TRIGGER AS
 $$
   BEGIN
+    RAISE NOTICE 'sf_upsert_product_variant %', NEW.id;
     INSERT INTO tt_analytics.dim_product (
         product_variant_id, attributes, current_price, size, color, label, category, brand, co_name, co_alpha3_code)
     VALUES (
@@ -330,14 +342,22 @@ ALTER TABLE product.country_of_origin ENABLE REPLICA TRIGGER tr_update_country_o
 -- create the sales fact table   
 DROP TABLE IF EXISTS tt_analytics.fact_sales CASCADE;
 CREATE TABLE tt_analytics.fact_sales (
-    sales_transaction_line_id UUID PRIMARY KEY,
-    date DATE NOT NULL,
-    product_variant_id INTEGER NOT NULL,
-    customer_id UUID NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price NUMERIC(10,2) NOT NULL,
-    sales_amount NUMERIC(12,2) NOT NULL
+    sales_transaction_line_id UUID,
+    date DATE,
+    product_variant_id INTEGER,
+    customer_id UUID,
+    quantity INTEGER,
+    unit_price NUMERIC(10,2),
+    sales_amount NUMERIC(12,2)
 );
+
+-- create an index on sales_transaction_line_id for faster joins
+CREATE UNIQUE INDEX idx_fact_sales ON tt_analytics.fact_sales (sales_transaction_line_id);
+
+-- indexes on foreign keys for faster joins
+CREATE INDEX idx_fact_sales_date ON tt_analytics.fact_sales (date);
+CREATE INDEX idx_fact_sales_product_variant ON tt_analytics.fact_sales (product_variant_id);
+CREATE INDEX idx_fact_sales_customer ON tt_analytics.fact_sales (customer_id);
 
 -- create the triggers and functions to maintain the fact_sales table
 CREATE OR REPLACE FUNCTION tt_analytics.sf_insert_sales_transaction_line () 
