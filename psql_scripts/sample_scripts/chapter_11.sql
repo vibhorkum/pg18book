@@ -9,6 +9,7 @@
         - Create a database central_analytics_bcp
         - Define the same tables as in central_analytics
         - Use the \copy command to bulk load data using psql commands  
+            - see psql_scripts/sample_scripts/chapter_11.sh 
 
 ============================================================================ */ 
 
