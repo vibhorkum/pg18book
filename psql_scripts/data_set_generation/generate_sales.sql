@@ -40,8 +40,8 @@ BEGIN
     --- create random orders for 75% of customers, spread over the last 18 months
     FOR customer_record IN SELECT id FROM customer ORDER BY RANDOM() LIMIT customer_count*0.75
         LOOP
-            --- select random date within last 18 months
-            random_date := current_date - TRUNC(RANDOM() * 150)::INTEGER;
+            --- select random date within last 24 months
+            random_date := current_date - TRUNC(RANDOM() * 365)::INTEGER;
 
             INSERT INTO sales_transaction (transaction_date, customer_id)
                 VALUES (random_date, customer_record.id)
@@ -81,8 +81,8 @@ SELECT COUNT(*) INTO customer_count FROM customer;
     --- create t-shirt and jeans orders for subset of customers, spread over the last 18 months
     FOR customer_record IN SELECT id FROM customer ORDER BY RANDOM() LIMIT customer_count*ratio
         LOOP
-            --- select random date within last 18 months
-            random_date := current_date - TRUNC(RANDOM() * 150)::INTEGER;
+            --- select random date within last 24 months
+            random_date := current_date - TRUNC(RANDOM() * 365)::INTEGER;
             INSERT INTO sales_transaction (transaction_date, customer_id)
                 VALUES (random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
@@ -125,8 +125,8 @@ SELECT COUNT(*) INTO customer_count FROM customer;
     --- create polo and sports coat orders for subset of customers, spread over the last 18 months
     FOR customer_record IN SELECT id FROM customer ORDER BY RANDOM() LIMIT customer_count*ratio
         LOOP
-            --- select random date within last 18 months
-            random_date := current_date - TRUNC(RANDOM() * 150)::INTEGER;
+            --- select random date within last 24 months
+            random_date := current_date - TRUNC(RANDOM() * 365)::INTEGER;
             INSERT INTO sales_transaction (transaction_date, customer_id)
                 VALUES (random_date, customer_record.id)
                 RETURNING id INTO sales_transaction_id;
