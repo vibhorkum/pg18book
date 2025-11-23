@@ -30,7 +30,7 @@ SET client_min_messages TO NOTICE;
 
 
 -- load replication configuration variables
-\i replication_configuration.sql
+\i replication/replication_configuration.sql
 
 -- load helper functions
 \i setup_helper_functions.sql

@@ -12,8 +12,8 @@
 -- =================================================================
 --  Step 1: Disable and Drop Subscriptions on the Subscriber
 -- =================================================================
-\c :subscriber_db4
-\echo 'Connected to subscriber database ->' :subscriber_db4
+\c :subscriber_db3
+\echo 'Connected to subscriber database ->' :subscriber_db3
 
 
 \echo '--> Disabling subscription' :'sub_slot_5' 'if it exists...'
