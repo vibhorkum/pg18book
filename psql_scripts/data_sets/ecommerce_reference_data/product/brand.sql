@@ -16,7 +16,7 @@ INSERT INTO product.brand (id, label, description)
         (14, 'Lacoste', 'French clothing company'),
         (15, 'Under Armour', 'Performance apparel'),
         (16, 'Tyrwhitt', 'Charles Tyrwhitt'), -- was 6
-        (17, 'Eton', 'Eton Tayloring'), -- was 7
+        (17, 'Eaton', 'Eaton Tayloring'), -- was 7
         (18, 'Brioni', 'Brioni Tayloring') -- was 8
     ON CONFLICT (id) DO NOTHING; 
 
