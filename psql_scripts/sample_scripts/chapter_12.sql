@@ -3,19 +3,21 @@
 
                         Code samples for Chapter 12
 
-    Benchamrking code to compare performance of different approaches to querying the data warehouse
-       star schema implementations is shown below
-        - view-only schema 'vo_analytics' using views only
-        - materialized-view based schema 'mv_analytics'
-        - trigger-table based schema 'tt_analytics'
+    Part 1: the three different star schemas (view-only, materialized-view based,
+    trigger-table based) are created and populated using the scripts in
+    psql_scripts/database_definitions/central_analytics_stars.sql
+    
+    Part 2: Benchmarking code to compare the performance of the three different 
+    star schemas implementations
 
     The code below runs the same query against each of the three implementations
     multiple times and measures the execution time for each approach.
 
-    The code needs to be run when connected to the central_analytics database.
+    We recommend running the pgbench scripts, decribed Chapter 8, to generate
+    sufficient data in the central_analytics database before running the 
+    benchmarking code below to get more meaningful results.
 
-    The three stars are created and populated using the scripts in
-    psql_scripts/database_definitions/central_analytics_stars.sql
+    The code needs to be run when connected to the central_analytics database.
 
 ============================================================================ */ 
 
