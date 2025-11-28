@@ -17,7 +17,10 @@
                 - trigger-table based schema 'tt_analytics'
             * each schame has
                 - 3 dimensions: date, product, customer location
-                - 1 fact table: sales                   
+                - 1 fact table: sales     
+
+  This script is executed as part of the master setup script in
+  psql_scripts/database_definitions/master_setup.sql                               
 ================================================================================
 */
 

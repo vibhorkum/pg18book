@@ -17,7 +17,9 @@
                 * Customer-location dimension maintained via triggers on customer table
                 * Product dimension maintained via triggers on product_variant, product_variant_price, product, category, brand, country_of_origin tables
             * trigger-based maintenance of sales fact table via triggers on sales_transaction_line table
-  Uses the view definitions from vo_analytics as the basis for the materialized views.                 
+
+  This script is executed as part of the master setup script in
+  psql_scripts/database_definitions/master_setup.sql                
 ================================================================================
 */
 

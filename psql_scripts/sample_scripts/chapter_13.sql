@@ -13,6 +13,7 @@
     (view-only and materialized view based) by changing the search_path to
     vo_analytics or mv_analytics respectively.
 
+    The samples should be run against the central_analytics database.
 ============================================================================ */ 
 
 -- adding tt_analytics to the search_path for the current session
@@ -30,7 +31,8 @@ SELECT
     SUM (fact_sales.sales_amount) AS total
 FROM dim_product
 NATURAL JOIN fact_sales
-WHERE co_alpha3_code = 'USA'
+JOIN dim_date ON fact_sales.date = dim_date.date_key
+WHERE co_alpha3_code = 'USA' AND year = 2025
 GROUP BY brand, category, price_range
 HAVING SUM(fact_sales.sales_amount) > 10000
 ORDER BY brand, category, price_range ASC;
@@ -51,7 +53,7 @@ WHERE co_alpha3_code = 'USA'
 GROUP BY
     GROUPING SETS  ((brand, category, price_range), (brand, category), (brand), ())
 HAVING SUM(fact_sales.sales_amount) > 5000
-ORDER BY brand ASC NULLS LAST, category ASC NULLS LAST, price_range ASC NULLS LAST;
+ORDER BY brand, category, price_range ASC NULLS LAST;
 
 
 -- Section Rollup
@@ -70,7 +72,7 @@ WHERE co_alpha3_code = 'USA'
 GROUP BY
     ROLLUP  (brand, category, price_range)
 HAVING SUM(fact_sales.sales_amount) > 10000
-ORDER BY brand ASC NULLS LAST, category ASC NULLS LAST, price_range ASC NULLS LAST;
+ORDER BY brand, category, price_range ASC NULLS LAST;
 
 
 SELECT 
@@ -78,6 +80,7 @@ SELECT
     SUM (fact_sales.sales_amount) AS total
 FROM dim_date
 JOIN fact_sales ON fact_sales.date = dim_date.date_key
+WHERE year IN (2025)
 GROUP BY 
     ROLLUP (year, quarter, month)
 ORDER BY year, quarter, month ASC NULLS LAST;
@@ -212,7 +215,7 @@ SELECT * FROM sales_hierarchy ORDER BY level, employee_id;
 
 -- CTE to aggregate sales targets up the hierarchy
 WITH RECURSIVE bottom_up AS (
-    -- leaves of the hierachy (those without subordinates)
+    -- leaves of the hierarchy (those without subordinates)
     SELECT employee_id, first_name, last_name, manager_id, sales_target
         FROM auxiliary.sales_organization
         WHERE NOT EXISTS 

@@ -11,7 +11,10 @@
             * 3 dimensions: date, product, customer location
             * 1 fact table: sales      
             * Primary keys and indexes for performance defined on fact and dimension tables
-  Uses the view definitions from vo_analytics as the basis for the materialized views.                 
+  Uses the view definitions from vo_analytics as the basis for the materialized views.       
+
+  This script is executed as part of the master setup script in
+  psql_scripts/database_definitions/master_setup.sql             
 ================================================================================
 */
 

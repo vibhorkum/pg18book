@@ -4,16 +4,20 @@
                         Code samples for Chapter 11
 
     1) code for logical replication and related topics is in the file 
-    psql_scripts/replication/product_replication_setup.sql               
+    psql_scripts/replication/product_replication_setup.sql
+    It is part of the overall replication setup scripts and does not need to be
+    run separately.               
     2) code to show the alternate way to populate the DWH is shown below
+        A) Database and table creation
         - Create a database central_analytics_bcp
         - Define the same tables as in central_analytics
-        - Use the \copy command to bulk load data using psql commands  
-            - see psql_scripts/sample_scripts/chapter_11.sh 
+        B) Bulk load data using the \copy command from psql
+        - Uses the \copy command to bulk load data using psql commands  
+        - see psql_scripts/sample_scripts/chapter_11.sh 
 
 ============================================================================ */ 
 
-
+-- Part 2: Alternate way to populate the DWH using bulk copy
 
 -- create the central_analytics_bcp database
 DROP DATABASE IF EXISTS central_analytics_bcp WITH (FORCE);

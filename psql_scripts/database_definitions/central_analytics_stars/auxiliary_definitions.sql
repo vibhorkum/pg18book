@@ -9,7 +9,10 @@
            * auxiliary schema to hold supporting tables and functions
            * us_state table to map state codes to state names and regions
            * functions to parse state and zip code from postal code
-           * sales_territory table to map states to sales territories               
+           * sales_territory table to map states to sales territories          
+
+  This script is executed as part of the master setup script in
+  psql_scripts/database_definitions/master_setup.sql                 
 ================================================================================
 */
 
