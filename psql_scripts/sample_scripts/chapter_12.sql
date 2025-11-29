@@ -6,6 +6,9 @@
     Part 1: the three different star schemas (view-only, materialized-view based,
     trigger-table based) are created and populated using the scripts in
     psql_scripts/database_definitions/central_analytics_stars.sql
+
+    They are all created and populated when running the master setup
+    script in psql_scripts/database_definitions/master_setup.sql.
     
     Part 2: Benchmarking code to compare the performance of the three different 
     star schemas implementations
@@ -16,6 +19,8 @@
     We recommend running the pgbench scripts, decribed Chapter 8, to generate
     sufficient data in the central_analytics database before running the 
     benchmarking code below to get more meaningful results.
+
+    Remember to refresh the materialized views before running the benchmark!
 
     The code needs to be run when connected to the central_analytics database.
 
