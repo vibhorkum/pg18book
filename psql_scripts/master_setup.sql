@@ -40,6 +40,10 @@ SET client_min_messages TO NOTICE;
 CALL check_server_configuration();
 \echo 'Server config ok'
 
+\echo 'Check if all required extensions are available'
+CALL check_required_extensions();
+\echo 'All required extensions are available'
+
 -- helper function to check progress of subscriptions
 -- defined in database postgres
 -- will be dropped at the end of the setup script

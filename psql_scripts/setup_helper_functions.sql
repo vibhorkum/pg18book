@@ -82,3 +82,37 @@ BEGIN
     END LOOP;
 END
 $$ LANGUAGE PLPGSQL;
+
+
+
+--- procedure to check that required extensions are available
+
+DROP PROCEDURE IF EXISTS check_required_extensions;
+CREATE PROCEDURE check_required_extensions()
+AS
+$$
+-- list of extensions that need to be available
+DECLARE
+    v_extensions VARCHAR[] := ARRAY[
+        'pg_background',
+        'pg_squeeze',
+        'pg_stat_statements',
+        'pg_trgm',
+        'pgaudit',
+        'plpgsql_check',
+        'plpgsql',
+        'plpython3u',
+        'vector',
+        'btree_gist',
+        'tablefunc'];
+    v_ext VARCHAR;
+BEGIN
+    FOREACH v_ext IN ARRAY v_extensions LOOP
+        IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = v_ext) THEN
+            RAISE EXCEPTION 'Required extension % is not available. Please install it before proceeding.', v_ext;
+        END IF;
+    END LOOP;
+    RAISE NOTICE 'All required extensions are available.';
+END;
+$$ LANGUAGE plpgsql;
+
