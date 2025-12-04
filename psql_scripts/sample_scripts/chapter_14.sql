@@ -14,6 +14,8 @@
 -- connect to the central_analytics database
 \c central_analytics
 
+
+
 -- 1) Basic SQL LIKE pattern matching
 
 -- simple tests using LIKE
@@ -49,6 +51,21 @@ SELECT DISTINCT p.id, p.label, b.label FROM product p
 CREATE INDEX idx_product_longdescription_casefold ON product (casefold(longdescription));
 );
 
+
+-- POSIX regular expressions with ~ operator
+SELECT DISTINCT p.id, p.label, b.label FROM product p 
+    JOIN brand b ON p.brand_id = b.id
+    WHERE p.label ~* 'Men.*Oxford.*shirt';
+
+SELECT DISTINCT p.id, p.label, b.label FROM product p 
+    JOIN brand b ON p.brand_id = b.id
+    WHERE p.label ~* '(^Nike|^Zara).*$';
+
+SELECT DISTINCT p.id, p.label, b.label FROM product p 
+    JOIN brand b ON p.brand_id = b.id
+    WHERE p.label ~* '^Chinos .* (Boss|The Gap)$';
+ 
+
 -- 2) Full Text Search using PostgreSQL's built-in text search capabilities
 -- create a tsvector column for the product text information (label, shortdescription, longdescription)
 
@@ -73,6 +90,8 @@ ALTER TABLE product
         label ||' '|| shortdescription || ' ' ||longdescription 
         )
     ) STORED;
+
+ ALTER TABLE product DROP COLUMN infotext_tsv;
 
 ALTER TABLE product
     ADD COLUMN infotext_tsv tsvector 
@@ -161,36 +180,58 @@ FROM product p
 
 3) Using the pg_trgm extension for trigram based similarity searching
 -- enable the pg_trgm extension
+
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- create an index on the longdescription column using GIN and pg_trgm
 
-SELECT show_trgm('Uniqlo'), show_trgm('Uniclo'), similarity('Uniqlo','Uniclo'), word_similarity('Uniqlo','Uniclo');
+CREATE INDEX idx_product_longdescription_trgm ON product USING GIN (longdescription gin_trgm_ops);
+
+SELECT 
+    show_trgm('Uniqlo'), 
+    show_trgm('Uniclo'), 
+    similarity('Uniqlo','Uniclo'), 
+    word_similarity('Uniqlo','Uniclo');
+
 
 SELECT p.id, p.label AS product, b.label AS brand FROM product p 
     JOIN brand b ON p.brand_id = b.id
     WHERE b.label % 'Uniclo';
 
 
+-- Using trigram for type-ahead search for product labels
 
-DROP INDEX IF EXISTS idx_product_longdescription_trgm;
-CREATE INDEX idx_product_longdescription_trgm ON product USING GIN (longdescription gin_trgm_ops);
-
--- sample trigram similarity search query
-SELECT DISTINCT p.id, p.label, b.label FROM product p 
-    JOIN brand b ON p.brand_id = b.id
-    WHERE p.longdescription % 'Mens T-Shirt %';
-
-    -- more sample queries
-    --    
-
-    -- ss
-
+CREATE FUNCTION type_ahead_product_search(search_text TEXT, limit_results INT DEFAULT 5)
+RETURNS TABLE (product_label TEXT, simi REAL) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT label::TEXT, similarity(label, search_text) AS simi FROM product 
+    WHERE label ILIKE search_text || '%'
+    ORDER BY simi DESC
+    LIMIT limit_results;
+END;
+$$ LANGUAGE plpgsql;
 
 
+-- test the type_ahead_search function
+SELECT * FROM type_ahead_product_search('Ca', 5);
+SELECT * FROM type_ahead_product_search('Cal', 5);
+SELECT * FROM type_ahead_product_search('Cali', 5);
+SELECT * FROM type_ahead_product_search('Calvi', 5);
 
 
-select * from product where label % 'Shirt';
-select * from product where shortdescription % 'Short sleeved futtf T-shirt from Gap';
 
-select *, similarity(longdescription, 'mens dress shirt') similarity from product
-    order by similarity DESC;
+-- 4) The unaccent extension
+
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+SELECT unaccent('Café Münsterländer');
+
+-- create an immutable version of the unaccent function
+CREATE OR REPLACE FUNCTION unaccent_immutable(text)
+RETURNS text AS $$
+    SELECT unaccent($1);
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+-- show how trigrams can be used to build auto-complete i.e. type-ahead search bars
+
