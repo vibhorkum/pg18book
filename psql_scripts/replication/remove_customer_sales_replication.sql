@@ -2,6 +2,8 @@
 --  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION FOR customer and sales data
 --  This script tears down the publications, subscriptions,
 --  and replication slots created by the setup script.
+--  configuration definition is in replication_configuration.sql and
+--  has been loaded as part of master_teardown.sql
 -- =================================================================
 
 
