@@ -85,34 +85,38 @@ $$ LANGUAGE PLPGSQL;
 
 
 
---- procedure to check that required extensions are available
+-- Check the extensions that are needed to load the data or
+-- run the examples in the different chapters
 
-DROP PROCEDURE IF EXISTS check_required_extensions;
-CREATE PROCEDURE check_required_extensions()
+DROP PROCEDURE IF EXISTS check_extension_list;
+CREATE PROCEDURE check_extension_list()
 AS
 $$
--- list of extensions that need to be available
+
 DECLARE
-    v_extensions VARCHAR[] := ARRAY[
-        'pg_background',
-        'pg_squeeze',
-        'pg_stat_statements',
-        'pg_trgm',
-        'pgaudit',
-        'plpgsql_check',
-        'plpgsql',
-        'plpython3u',
-        'vector',
-        'btree_gist',
-        'tablefunc'];
-    v_ext VARCHAR;
+    v_extensions VARCHAR[][] := ARRAY[
+        ['pg_background', 'Chapter 6'],
+        ['pg_squeeze', 'Chapter 8'],
+        ['pg_stat_statements','Chapter 8'],
+        ['pg_trgm', 'Chapter 14'],
+        ['pgaudit', 'Chapter 4 and 8'],
+        ['plpgsql_check','Chapter 6'],
+        ['plpgsql', 'the whole book'],
+        ['plpython3u','Chapter 6, and 3-19'],
+        ['vector', 'Chapters 16 through 19'],
+        ['btree_gist', 'basic data setup'],
+        ['unaccent', 'Chapter 14']
+        ];
+    v_array_length INTEGER;
 BEGIN
-    FOREACH v_ext IN ARRAY v_extensions LOOP
-        IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = v_ext) THEN
-            RAISE EXCEPTION 'Required extension % is not available. Please install it before proceeding.', v_ext;
+    v_array_length := array_length(v_extensions,1);
+    -- iterate through the array of arrays
+    FOR i IN 1..v_array_length LOOP
+        IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = v_extensions[i][1]) THEN
+            RAISE NOTICE 'Required extension % is not available. The extension is needed for %', v_extensions[i][1], v_extensions[i][2];
         END IF;
     END LOOP;
-    RAISE NOTICE 'All required extensions are available.';
 END;
 $$ LANGUAGE plpgsql;
 
+CALL check_extension_list();

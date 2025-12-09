@@ -143,11 +143,12 @@ AS (
     FROM dim_product dp
     NATURAL JOIN fact_sales
     GROUP BY brand
+    ORDER BY total_brand_sales DESC
 )
     -- main query to rank brands by sales and calculate running totals and percentages
 SELECT 
     RANK() OVER (ORDER BY total_brand_sales DESC) AS rank,
-    brand, brand_sales,
+    brand, total_brand_sales,
     SUM(total_brand_sales) OVER w AS running_total,
     ROUND( (SUM(total_brand_sales) OVER w / SUM(total_brand_sales) OVER ()) * 100, 2) AS pct_sales
 FROM brand_sales

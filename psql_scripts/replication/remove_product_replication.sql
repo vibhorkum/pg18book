@@ -2,21 +2,11 @@
 --  PSQL SCRIPT FOR ROLLING BACK LOGICAL REPLICATION FOR PRODUCT REFERENCE
 --  This script tears down the publications, subscriptions,
 --  and replication slots created by the setup script.
+--  configuration definition is in replication_configuration.sql and
+--  has been loaded as part of master_teardown.sql
 -- =================================================================
 
--- Step 0: Define variables for easier maintenance
-\set publisher_db1 'ecommerce_reference_data'
 
-\set subscriber_db1 'west_ecommerce_data'
-\set subscriber_db2 'east_ecommerce_data'
-\set subscriber_db3 'central_analytics'
-\set subscriber_db4 'aidb'
-
-\set sub_slot_1 'west_product_data_sub'
-\set sub_slot_2 'east_product_data_sub'
-\set sub_slot_3 'central_analytics_product_sub'
-\set sub_slot_4 'aidb_product_sub'
--- SET vars.sub_slot_1 TO :'sub_slot_1';
 
 \echo '*** Removal Script Started ***'
 
