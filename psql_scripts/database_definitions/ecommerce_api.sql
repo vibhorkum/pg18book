@@ -1,14 +1,13 @@
+/*
 -- =================================================================
--- API Definitions for the eCommerce databases
-    -- add/edit/delete/view customer
-    -- add/edit/delete/view inventory 
-    -- add/edit/delete/view sales_transaction
-    -- add/edit/delete/view sales_transaction_line
-    -- view for sales by customer (full and focus)
-    -- views for brand, category, product_variant, product_variant_price
+--  PSQL SCRIPT to DEFINE THE ECOMMERCE API SCHEMA
+-- =================================================================
+--  OWNER: Superuser
+--  PURPOSE: Creates the api functions and views to be used in both
+--           the east and west ecommerce databases
 -- =================================================================
 
-
+*/
 
 /*
     customer API
@@ -328,7 +327,6 @@ $$
 -- create sales transaction for the customer and timestamp
 -- iterate through the arrays of product_variant_ids and qtys to create sales transaction lines
 -- if p_adjust_inventory is true, adjust the inventory for each product variant
-
 DECLARE
     v_sales_transaction_id UUID; -- the new sales transaction id
     i INT; -- loop counter for the arrays

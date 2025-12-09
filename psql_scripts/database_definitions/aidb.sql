@@ -1,9 +1,9 @@
 -- =================================================================
---  PSQL SCRIPT FOR WEST COAST E-COMMERCE DATABASE
+--  PSQL SCRIPT FOR AI Database
 -- =================================================================
 --  OWNER: Superuser
---  PURPOSE: Creates the database schema for the west coast-specific site.
---           Some tables are populated via logical replication.
+--  PURPOSE: Creates the database schema for the AIDB database,
+--           including product reference data and embedding tables.
 -- =================================================================
 
 -- =================================================================

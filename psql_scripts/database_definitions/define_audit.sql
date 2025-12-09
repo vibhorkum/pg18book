@@ -1,13 +1,20 @@
-/* ----------------------------------------------------------------------------
+/* 
+================================================================================
+  PSQL SCRIPT TO ILLUSTRATE AUDIT DEFINITIONS
+================================================================================
+  OWNER: Superuser
+  PURPOSE: Creates the audit definitions for the eCommerce Sample Application
+           databases. 
+  PREREQUSITES: The pgAudit extension must be installed
+               and the role 'audit' must exist.
+          
+================================================================================
 
-Audit definitions for eCommerce Sample Application
-This requires the extension pgAudit and the role audit.
-
-These are samples for illustration purpose only.
+The following are samples for illustration purpose only.
 
 We will define sample audits for the following operations:
 
-All DDL in all databases on the server
+1) All DDL in all databases
 
 eCommerce Reference Data
 
@@ -66,7 +73,7 @@ ALTER DATABASE SET audit.pgaudit.log ='execute';
 
 \c central_analytics
 
---- to be added when the cenytral analytics API is defined
+--- to be added when the central analytics API is defined
 
 
 

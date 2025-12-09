@@ -19,6 +19,11 @@
 
 \c postgres
 
+
+
+-- load replication configuration variables
+\i replication/replication_configuration.sql
+
 \echo '.... running remove_product_replication.sql'
 \i replication/remove_product_replication.sql
 

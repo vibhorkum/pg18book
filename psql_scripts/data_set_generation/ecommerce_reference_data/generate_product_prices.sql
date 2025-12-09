@@ -42,9 +42,10 @@ CREATE PROCEDURE internal.generate_product_variant_prices ()
                                             WHERE p.category_id = pc.id
                     LOOP
                         --- look up the standard price
-                        v_product_price := v_product_record.category_id;
+                        v_product_price := v_category_price[v_product_record.category_id];
+                        RAISE NOTICE 'price %', v_product_price;
                         --- randomize the price
-                        v_product_price := v_product_price + (random() * .25);
+                        v_product_price := v_product_price + (random() * .25 * v_product_price);
                         -- iterate through all the variants for the product
                         FOR v_product_variant_record IN SELECT id FROM product_variant WHERE product_id = v_product_record.id
                             LOOP
@@ -74,4 +75,6 @@ CREATE PROCEDURE internal.generate_product_variant_prices ()
     LANGUAGE plpgsql;
 
 \echo '*** Generating variants and prices ***'
+
+TRUNCATE product.product_variant_price CASCADE;
 CALL internal.generate_product_variant_prices();

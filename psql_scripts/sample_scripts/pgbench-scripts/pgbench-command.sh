@@ -28,12 +28,12 @@ psql -h localhost -p 5432 -d east_ecommerce_data -c "SELECT * FROM pg_stat_state
 
 
 # the commands run against database east_ecommerce_data on localhost port 5432
-# 10 concurrent connections for 600 seconds
+# 10 concurrent connections for 1200 seconds with 5 threads (jobs)
 # progress report every 5 seconds
 # the files are run in the order specified, with the @n indicating the relative frequency of execution
 pgbench  -h localhost -p 5432 \
 -d east_ecommerce_data \
--c 10 -n -T 30  -P 5 \
+-c 10 -n -T 1200  -P 5 -j 5 \
 -f gen-inventory.sql@10 \
 -f gen-sales-transactions.sql@4 \
 -f delete-sales-transaction-line.sql@1 \

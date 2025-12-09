@@ -164,6 +164,11 @@ pgbench  -h localhost -p 5432 -d east_ecommerce_data -c 10 -n -T 60  -P 5 -f gen
   pgbadger /Users/marclinster/Documents/GitHub/pgbadger_test/postgresql/postgresql-2025-09-25.log -o report1.html
 
 
+Hierachical role membership: 
+SELECT a.oid, a.rolname 
+WHERE pg_has_role('product_price_manager', a.oid, 'member');  
+
+
   Oct 25
   * Updates to customer data: drop the east/west definitions and the need to use partitions in central analytics
     * Rename schema to customer in
@@ -217,3 +222,32 @@ Oct 28:
   * remove us_ecommerce_data_seed
   * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels and call it east_ecommerce_customer.sql
   * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels and call it west_ecommerce_customer.sql
+Oct 28: 
+* things to clean up in the data model
+  * define what to do with the pgadmin files (I think they should be removed)
+  * central definition for the login information for all the roles
+  * central definition of all the replication information
+  * remove us_ecommerce_data_seed (done)
+  * remove customer_data_generation.sql (done)
+  * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels (done)
+  * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels (done)
+  * roles need to be updated to align with Chapter 3
+  * Permissions need to be cimplemented
+
+
+  Nov 10
+
+  List triggers for IVM
+  -- View the automatically created triggers
+SELECT tgname, tgrelid::regclass::text AS table_name
+FROM pg_trigger
+WHERE tgname ILIKE '%ivm%';
+
+Nov 14
+* Change publications to filter out PII on customer table
+* Change customer table definition in central analytics to default to masked information
+* test insert/update/delete
+
+Nov 16
+
+psql -d central_analytics -c '\copy brand to stdout' | psql -d ca2 -c '\copy product.brand from stdin'
