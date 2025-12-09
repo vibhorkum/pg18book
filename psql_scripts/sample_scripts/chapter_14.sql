@@ -234,4 +234,3 @@ $$ LANGUAGE SQL IMMUTABLE;
 
 
 -- show how trigrams can be used to build auto-complete i.e. type-ahead search bars
-
