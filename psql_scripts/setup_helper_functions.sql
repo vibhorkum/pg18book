@@ -102,7 +102,7 @@ DECLARE
         ['pgaudit', 'Chapter 4 and 8'],
         ['plpgsql_check','Chapter 6'],
         ['plpgsql', 'the whole book'],
-        ['plpython3u','Chapter 6, and 3-19'],
+        ['plpython3u','Chapter 6, and 16-19'],
         ['vector', 'Chapters 16 through 19'],
         ['btree_gist', 'basic data setup'],
         ['unaccent', 'Chapter 14']
