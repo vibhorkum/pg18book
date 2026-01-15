@@ -26,9 +26,25 @@
 
 ============================================================================ */ 
 
+-- simple example for a view
+
+CREATE OR REPLACE VIEW transactions_per_month AS
+    SELECT EXTRACT(YEAR FROM transaction_date) AS year, 
+        EXTRACT(MONTH FROM transaction_date) AS month, 
+        COUNT(id) AS total_transactions
+    FROM sales_transaction
+    WHERE transaction_date BETWEEN '2024-01-01' AND '2024-12-31'
+    GROUP BY year, month
+    ORDER BY year, month;
+
+-- refresh the materialized views before running the benchmark
+REFRESH MATERIALIZED VIEW mv_analytics.mv_dim_date;
+REFRESH MATERIALIZED VIEW mv_analytics.mv_dim_product;
+REFRESH MATERIALIZED VIEW mv_analytics.mv_dim_customer_location;
+REFRESH MATERIALIZED VIEW mv_analytics.mv_fact_sales;    
 
 
--- measure the time it takes to run this query
+-- measure the time it takes to run this query in the three different star schema implementations
 DO
 $$
 DECLARE
@@ -114,3 +130,7 @@ BEGIN
     RAISE NOTICE 'Tables & triggers: % ms', ROUND(v_execution_time_tt,2);
 END
 $$ LANGUAGE PLPGSQL;
+
+
+
+            

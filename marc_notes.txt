@@ -219,6 +219,14 @@ Oct 28:
   * define what to do with the pgadmin files (I think they should be removed)
   * central definition for the login information for all the roles
   * central definition of all the replication information
+  * remove us_ecommerce_data_seed
+  * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels and call it east_ecommerce_customer.sql
+  * move west_ecommerce_data/west_customer/customer.sql customer.sql up two levels and call it west_ecommerce_customer.sql
+Oct 28: 
+* things to clean up in the data model
+  * define what to do with the pgadmin files (I think they should be removed)
+  * central definition for the login information for all the roles
+  * central definition of all the replication information
   * remove us_ecommerce_data_seed (done)
   * remove customer_data_generation.sql (done)
   * move east_ecommerce_data/east_customer/customer.sql customer.sql up two levels (done)
@@ -243,3 +251,8 @@ Nov 14
 Nov 16
 
 psql -d central_analytics -c '\copy brand to stdout' | psql -d ca2 -c '\copy product.brand from stdin'
+
+Dec 25
+
+which psql - shows path to psql
+parameters set in .pg_service.conf 

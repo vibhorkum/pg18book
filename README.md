@@ -10,6 +10,8 @@ The architecture includes:
 *   **`central_analytics`**: A data warehouse that aggregates data from all regional databases.
 *   **`aidb`**: An AI database that subscribes to `central_analytics` and `ecommerce_reference_data` to build a semantic search engine using `pgvector` and OpenAI embeddings.
 
+The `master_setup.sql` script (see below) creates the 5 different databases (ecommerce_reference_data, east_ecommerce_data, west_ecommerce_data, central_analytics, and aidb) on the same PostgreSQL server.
+
 This project showcases a multi-layered logical replication setup, data aggregation, and the integration of vector search for AI-powered applications.
 
 ## Key Features Demonstrated
@@ -22,16 +24,17 @@ This project showcases a multi-layered logical replication setup, data aggregati
 *   **Advanced Data Types**: `DATERANGE` for price validity, `JSONB` for product attributes, and `vector` for embeddings.
 *   **Exclusion Constraints**: Using `GIST` to prevent overlapping price validity periods.
 *   **PostgreSQL extensions**: 
-    * `pg_background` for background processing using independant processes.
-    * `pg_squeeze` to reorganize tables and remove unused space.
-    * `pg_stat_statements` to collect performance information
-    * `pg_trgm` for fuzzy text search and string matching
-    * `pgaudit` to get collect audit information about DML and DDL commands
-    * `plpgsql_check` to show the value of a plpgsql linter
-    * `plpgsql` to develop stored procedures and functions in PostgreSQL native procedural language
-    * `plpython3u`to devlop stored procedures in Python and to connect to LLMs
-    * `vector` to run approximate nearest neighbor AI calculations in PostgreSQL
-    * `btree_gist` to combine B-tree and GiST indexes to identify overlaps in ranges
+    * `plpgsql` to develop stored procedures and functions in PostgreSQL native procedural language (used throughout the whole book).    
+    * `btree_gist` to combine B-tree and GiST indexes to identify overlaps in ranges (part of the basic data model).
+    * `pgaudit` to get collect audit information about DML and DDL commands (Chapters 4 and 8).
+    * `pg_background` for background processing using independant processes (Chapter 6).
+    * `plpgsql_check` to show the value of a plpgsql linter (Chapter 6)
+    * `plpython3u`to devlop stored procedures in Python and to connect to LLMs (Chapters 6 and 16-19).
+    * `pg_squeeze` to reorganize tables and remove unused space (Chapter 8).
+    * `pg_stat_statements` to collect performance information (Chapter 8).
+    * `pg_trgm` for fuzzy text search and string matching (Chapter 14).
+    * `unaccent` to remove diacritics, umlauts, etc. from text files before searching (Chapter 14).
+    * `vector` to run approximate nearest neighbor AI calculations in PostgreSQL (Chapters 16-19).
 
 
 *   **`psql` Scripting**: Comprehensive use of `psql` meta-commands and variables for fully automated setup and teardown.
@@ -60,6 +63,11 @@ The project is primarily organized within the `psql_scripts/` directory:
 *   `psql` command-line client.
 *   An OpenAI API key for generating embeddings and using the RAG function.
 
+## Important note to pre-release testers
+
+> The pre-release version requires that the superuser is called `postgres' and uses the password 'postgres'. This will be changed prior to the book release
+
+
 ---
 ## Supported Environments
 The scripts have been tested with Docker Desktop 4.53.
@@ -72,20 +80,12 @@ The file docker-compose.yml can be used to generate a Docker container that incl
 This is the recommended method for a fully automated setup.
 
 ### 1. One-Time Server Configuration
-Your PostgreSQL server must be configured for logical replication. This only needs to be done once.
-
-Edit your `postgresql.conf` file to set:
-```ini
-wal_level = logical
-```
-Alternatively, run the following SQL as a superuser:
-```sql
-ALTER SYSTEM SET wal_level = logical;
-```
-**You must restart your PostgreSQL server for this change to take effect.**
+* Your PostgreSQL server must be configured for logical replication. 
+* The `wal_level` must be set to logical
+* The setting for `max_logical_replication_workers` must be > 10.
 
 ### 2. Set Your OpenAI API Key
-The `aidb` database requires an OpenAI API key to generate vector embeddings. Connect to `psql` and set the key in the database configuration. **This key is stored as a server-level parameter and will persist until reset.**
+The examples for `aidb` (chapter 16 and beyond) require an OpenAI API key to generate vector embeddings. Connect to `psql` and set the key in the database configuration. **This key is stored as a server-level parameter and will persist until reset.**
 
 ```bash
 # Connect to any database as a superuser
@@ -106,8 +106,9 @@ The master setup script handles everything: creating databases, defining schemas
 psql -U your_superuser -f psql_scripts/master_setup.sql
 ```
 
-Alternatively, run the master_setup.sql script from from psql /psql_scripts with
-```
+Alternatively, run the `master_setup.sql` script from psql from the directory `plsql_scripts`
+```bash
+# Run the master setup script from the psql_scripts directory of the repository
 \i master_setup.sql
 ```
 After the script finishes, all databases will be created, and data will be flowing from the reference and regional databases into `central_analytics` and into `aidb`.
