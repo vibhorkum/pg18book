@@ -164,7 +164,7 @@ SELECT DISTINCT p.id, p.label as product_label, b.label as brand_label,
 
 -- find a casual blue shirt that costs less then $50
 
-SELECT p.id, p.label, MIN(pvp.price), FORMAT ('%s-%s', MIN(pvp.price), MAX (pvp.price)) AS price_range 
+SELECT p.id, p.label, FORMAT ('%s-%s', MIN(pvp.price), MAX (pvp.price)) AS price_range 
 FROM product p 
     JOIN product_variant pv ON p.id = pv.product_id
     JOIN product_variant_price pvp ON pv.id = pvp.product_variant_id

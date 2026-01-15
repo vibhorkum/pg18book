@@ -251,3 +251,8 @@ Nov 14
 Nov 16
 
 psql -d central_analytics -c '\copy brand to stdout' | psql -d ca2 -c '\copy product.brand from stdin'
+
+Dec 25
+
+which psql - shows path to psql
+parameters set in .pg_service.conf 
