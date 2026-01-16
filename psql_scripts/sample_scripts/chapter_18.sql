@@ -1,3 +1,22 @@
+/* ============================================================================
+
+                        Code samples for Chapter 18 - pgvector and Semantic Search
+
+1) cURL code to create an embedding using OpenAI API (requires cURL version 8.7.1 or higher)
+2) Python code to create an embedding using OpenAI API
+3) PostgreSQL function to create an embedding using OpenAI API with PL/Python
+4) Example usage of the PostgreSQL function to create embeddings for product categories
+5) Batch embedding of products and storing in product_embedding table
+6) Example similarity search using the created embeddings
+7) Example similarity search with additional hard constraints
+8) Retrieve the embedding for a specific product
+9) Find top 3 similar products to a given query
+10) Spotify-style recommendation example
+
+This code assumes you have an OpenAI API key.
+
+============================================================================ */ 
+
 # Curl Command to Create an Embedding using OpenAI API
 
 curl https://api.openai.com/v1/embeddings \
@@ -51,6 +70,19 @@ except urllib.error.HTTPError as e:
 
 # Note: Replace YOUR_API_KEY with your actual OpenAI API key.
 # The response will contain the embedding vector for the provided input text.
+
+
+/* PL/Python code to create and manage embeddings in PostgreSQL */
+
+-- Set your OpenAI API key in PostgreSQL configuration
+-- Option 1: Session-level parameter
+ SELECT set_config('api.openai_api_key','your_openai_api_key_here', false);
+
+-- Option 2: Server-level parameter
+ALTER SYSTEM SET api.openai_api_key = 'your_openai_api_key_here';
+-- Reload the configuration to apply the change
+SELECT pg_reload_conf();
+
 
 -- PostgreSQL Function to Create an Embedding using OpenAI API
 CREATE OR REPLACE FUNCTION api.openai_embed(input_text text)
