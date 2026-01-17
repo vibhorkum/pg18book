@@ -3,7 +3,7 @@
                         Code samples for Chapter 18 - pgvector and Semantic Search
 
 1) cURL code to create an embedding using OpenAI API (requires cURL version 8.7.1 or higher)
-2) Python code to create an embedding using OpenAI API
+2) Python code to create an embedding using OpenAI API (requires Python version 3.13.7 or higher)
 3) PostgreSQL function to create an embedding using OpenAI API with PL/Python
 4) Example usage of the PostgreSQL function to create embeddings for product categories
 5) Batch embedding of products and storing in product_embedding table
