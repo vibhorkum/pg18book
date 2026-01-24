@@ -1,4 +1,16 @@
+/* ============================================================================
+
+                        Code samples for Chapter 19 
+    - to be run in AIDB
+                      
+
+============================================================================ */ 
+
+
+
 CREATE EXTENSION IF NOT EXISTS pg_background;
+
+
 CREATE TABLE IF NOT EXISTS embeddings.embedding_job (
   id            bigserial PRIMARY KEY,
   entity_type   text NOT NULL CHECK (entity_type IN ('category','brand','product','variant')),
@@ -9,6 +21,7 @@ CREATE TABLE IF NOT EXISTS embeddings.embedding_job (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+
 
 CREATE INDEX IF NOT EXISTS embedding_job_pending_idx
   ON embeddings.embedding_job (status, created_at);
@@ -311,7 +324,7 @@ CREATE TABLE IF NOT EXISTS embeddings.query_embedding_cache (
 CREATE INDEX IF NOT EXISTS query_embedding_cache_last_used_idx
   ON embeddings.query_embedding_cache (last_used_at);
 
-CCREATE OR REPLACE FUNCTION embeddings.sf_get_query_embedding(
+CREATE OR REPLACE FUNCTION embeddings.sf_get_query_embedding(
   p_query    text,
   p_model_id text DEFAULT 'text-embedding-3-small'
 )
