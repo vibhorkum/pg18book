@@ -149,7 +149,7 @@ BEGIN
         FROM product.category c
         WHERE c.id = v_job.entity_id;
 
-        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
+        v_vec := api.openai_embed(v_input_text)::vector(1536);
 
         INSERT INTO embeddings.product_category_embedding (product_category_id, embedding)
         VALUES (v_job.entity_id, v_vec)
@@ -163,7 +163,7 @@ BEGIN
         FROM product.brand b
         WHERE b.id = v_job.entity_id;
 
-        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
+        v_vec := api.openai_embed(v_input_text)::vector(1536);
 
         INSERT INTO embeddings.product_brand_embedding (product_brand_id, embedding)
         VALUES (v_job.entity_id, v_vec)
@@ -186,7 +186,7 @@ BEGIN
           ON c.id = p.category_id
         WHERE p.id = v_job.entity_id;
 
-        v_vec := api.sf_sf_openai_embed(v_input_text)::vector(1536);
+        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
 
         INSERT INTO embeddings.product_embedding (product_id, embedding)
         VALUES (v_job.entity_id, v_vec)
@@ -200,7 +200,7 @@ BEGIN
         FROM product.product_variant v
         WHERE v.id = v_job.entity_id;
 
-        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
+        v_vec := api.openai_embed(v_input_text)::vector(1536);
 
         INSERT INTO embeddings.product_variant_embedding (product_variant_id, embedding)
         VALUES (v_job.entity_id, v_vec)
