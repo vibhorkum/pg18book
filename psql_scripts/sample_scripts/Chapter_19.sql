@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS embedding_job_pending_idx
 CREATE INDEX IF NOT EXISTS embedding_job_entity_idx
   ON embeddings.embedding_job (entity_type, entity_id);
 
-CREATE OR REPLACE FUNCTION embeddings.enqueue_embedding_job(p_entity_type text, p_entity_id int)
+CREATE OR REPLACE FUNCTION embeddings.sf_enqueue_embedding_job(p_entity_type text, p_entity_id int)
 RETURNS void
 LANGUAGE plpgsql
 AS $$
@@ -43,7 +43,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  PERFORM embeddings.enqueue_embedding_job('category', NEW.id);
+  PERFORM embeddings.sf_enqueue_embedding_job('category', NEW.id);
   RETURN NEW;
 END;
 $$;
@@ -61,7 +61,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  PERFORM embeddings.enqueue_embedding_job('brand', NEW.id);
+  PERFORM embeddings.sf_enqueue_embedding_job('brand', NEW.id);
   RETURN NEW;
 END;
 $$;
@@ -79,7 +79,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  PERFORM embeddings.enqueue_embedding_job('product', NEW.id);
+  PERFORM embeddings.sf_enqueue_embedding_job('product', NEW.id);
   RETURN NEW;
 END;
 $$;
@@ -97,7 +97,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  PERFORM embeddings.enqueue_embedding_job('variant', NEW.id);
+  PERFORM embeddings.sf_enqueue_embedding_job('variant', NEW.id);
   RETURN NEW;
 END;
 $$;
@@ -110,124 +110,136 @@ ON product.product_variant
 FOR EACH ROW
 EXECUTE FUNCTION embeddings.trg_enqueue_variant_embedding();
 
-CREATE OR REPLACE FUNCTION embeddings.process_embedding_jobs(p_batch_size int DEFAULT 50)
-RETURNS int
+CREATE OR REPLACE FUNCTION embeddings.sf_process_embedding_jobs(
+  p_batch_size integer DEFAULT 50
+)
+RETURNS integer
 LANGUAGE plpgsql
-AS $$
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, embeddings, product, api
+AS $function$
 DECLARE
-  j RECORD;
-  processed int := 0;
-  input_text text;
-  vec vector(1536);
+  v_job        embeddings.embedding_job%ROWTYPE;
+  v_processed  integer := 0;
+  v_input_text text;
+  v_vec        vector(1536);
 BEGIN
-  FOR j IN
-    SELECT *
-    FROM embeddings.embedding_job
-    WHERE status = 'pending'
-    ORDER BY created_at
+  FOR v_job IN
+    SELECT ej.*
+    FROM embeddings.embedding_job ej
+    WHERE ej.status = 'pending'
+    ORDER BY ej.created_at
     LIMIT p_batch_size
     FOR UPDATE SKIP LOCKED
   LOOP
     BEGIN
       -- Mark running
-      UPDATE embeddings.embedding_job
-      SET status = 'running',
-          attempts = attempts + 1,
+      UPDATE embeddings.embedding_job ej
+      SET status     = 'running',
+          attempts   = ej.attempts + 1,
           updated_at = now(),
           last_error = NULL
-      WHERE id = j.id;
+      WHERE ej.id = v_job.id;
 
-      -- Build the input text + write to the correct embedding table
-      IF j.entity_type = 'category' THEN
+      -- Build input text and upsert the embedding into the correct table.
+      IF v_job.entity_type = 'category' THEN
+        SELECT coalesce(c.label, '') || ' ' || coalesce(c.description, '')
+        INTO v_input_text
+        FROM product.category c
+        WHERE c.id = v_job.entity_id;
 
-        SELECT coalesce(label,'') || ' ' || coalesce(description,'')
-        INTO input_text
-        FROM product.category
-        WHERE id = j.entity_id;
+        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
 
-        vec := api.openai_embed(input_text)::vector(1536);
-
-        INSERT INTO embeddings.product_category_embedding(product_category_id, embedding)
-        VALUES (j.entity_id, vec)
+        INSERT INTO embeddings.product_category_embedding (product_category_id, embedding)
+        VALUES (v_job.entity_id, v_vec)
         ON CONFLICT (product_category_id)
-        DO UPDATE SET embedding = EXCLUDED.embedding;
+        DO UPDATE
+          SET embedding = EXCLUDED.embedding;
 
-      ELSIF j.entity_type = 'brand' THEN
+      ELSIF v_job.entity_type = 'brand' THEN
+        SELECT coalesce(b.label, '') || ' ' || coalesce(b.description, '')
+        INTO v_input_text
+        FROM product.brand b
+        WHERE b.id = v_job.entity_id;
 
-        SELECT coalesce(label,'') || ' ' || coalesce(description,'')
-        INTO input_text
-        FROM product.brand
-        WHERE id = j.entity_id;
+        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
 
-        vec := api.openai_embed(input_text)::vector(1536);
-
-        INSERT INTO embeddings.product_brand_embedding(product_brand_id, embedding)
-        VALUES (j.entity_id, vec)
+        INSERT INTO embeddings.product_brand_embedding (product_brand_id, embedding)
+        VALUES (v_job.entity_id, v_vec)
         ON CONFLICT (product_brand_id)
-        DO UPDATE SET embedding = EXCLUDED.embedding;
+        DO UPDATE
+          SET embedding = EXCLUDED.embedding;
 
-      ELSIF j.entity_type = 'product' THEN
-
+      ELSIF v_job.entity_type = 'product' THEN
         SELECT
-          coalesce(p.label,'') || ' ' ||
-          coalesce(b.label,'') || ' ' ||
-          coalesce(c.label,'') || ' ' ||
-          coalesce(p.shortdescription,'') || ' ' ||
-          coalesce(p.longdescription,'')
-        INTO input_text
+          coalesce(p.label, '') || ' ' ||
+          coalesce(b.label, '') || ' ' ||
+          coalesce(c.label, '') || ' ' ||
+          coalesce(p.shortdescription, '') || ' ' ||
+          coalesce(p.longdescription, '')
+        INTO v_input_text
         FROM product.product p
-        JOIN product.brand b ON b.id = p.brand_id
-        JOIN product.category c ON c.id = p.category_id
-        WHERE p.id = j.entity_id;
+        JOIN product.brand b
+          ON b.id = p.brand_id
+        JOIN product.category c
+          ON c.id = p.category_id
+        WHERE p.id = v_job.entity_id;
 
-        vec := api.openai_embed(input_text)::vector(1536);
+        v_vec := api.sf_sf_openai_embed(v_input_text)::vector(1536);
 
-        INSERT INTO embeddings.product_embedding(product_id, embedding)
-        VALUES (j.entity_id, vec)
+        INSERT INTO embeddings.product_embedding (product_id, embedding)
+        VALUES (v_job.entity_id, v_vec)
         ON CONFLICT (product_id)
-        DO UPDATE SET embedding = EXCLUDED.embedding;
+        DO UPDATE
+          SET embedding = EXCLUDED.embedding;
 
-      ELSIF j.entity_type = 'variant' THEN
+      ELSIF v_job.entity_type = 'variant' THEN
+        SELECT coalesce(v.attributes::text, '')
+        INTO v_input_text
+        FROM product.product_variant v
+        WHERE v.id = v_job.entity_id;
 
-        SELECT coalesce(attributes::text,'')
-        INTO input_text
-        FROM product.product_variant
-        WHERE id = j.entity_id;
+        v_vec := api.sf_openai_embed(v_input_text)::vector(1536);
 
-        vec := api.openai_embed(input_text)::vector(1536);
-
-        INSERT INTO embeddings.product_variant_embedding(product_variant_id, embedding)
-        VALUES (j.entity_id, vec)
+        INSERT INTO embeddings.product_variant_embedding (product_variant_id, embedding)
+        VALUES (v_job.entity_id, v_vec)
         ON CONFLICT (product_variant_id)
-        DO UPDATE SET embedding = EXCLUDED.embedding;
+        DO UPDATE
+          SET embedding = EXCLUDED.embedding;
 
       ELSE
-        RAISE EXCEPTION 'Unknown entity_type: %', j.entity_type;
+        RAISE EXCEPTION 'Unknown entity_type: %', v_job.entity_type
+          USING ERRCODE = '22023';
       END IF;
 
       -- Mark done
-      UPDATE embeddings.embedding_job
-      SET status = 'done',
+      UPDATE embeddings.embedding_job ej
+      SET status     = 'done',
           updated_at = now()
-      WHERE id = j.id;
+      WHERE ej.id = v_job.id;
 
-      processed := processed + 1;
+      v_processed := v_processed + 1;
 
     EXCEPTION WHEN OTHERS THEN
       -- Mark failed but keep the job for retry/inspection
-      UPDATE embeddings.embedding_job
-      SET status = 'failed',
+      UPDATE embeddings.embedding_job ej
+      SET status     = 'failed',
           last_error = SQLERRM,
           updated_at = now()
-      WHERE id = j.id;
+      WHERE ej.id = v_job.id;
     END;
   END LOOP;
 
-  RETURN processed;
+  RETURN v_processed;
 END;
-$$;
+$function$;
 
-SELECT embeddings.process_embedding_jobs(50);
+COMMENT ON FUNCTION embeddings.sf_process_embedding_jobs(integer)
+IS 'Process pending embedding jobs in batches; generates embeddings and upserts into per-entity embedding tables.';
+
+
+SELECT embeddings.sf_process_embedding_jobs(50);
 
 SELECT * FROM embeddings.embedding_job WHERE status = 'pending' ORDER BY created_at;
 
@@ -243,77 +255,132 @@ ADD COLUMN IF NOT EXISTS max_attempts int NOT NULL DEFAULT 10;
 CREATE INDEX IF NOT EXISTS embedding_job_runnable_idx
   ON embeddings.embedding_job (status, next_run_at, created_at);
 
+ALTER TABLE embeddings.product_category_embedding
+ADD COLUMN IF NOT EXISTS content_hash text;
 
-CREATE OR REPLACE FUNCTION api.sql_from_question(p_question text, p_row_limit int DEFAULT 20)
-RETURNS text
-LANGUAGE plpython3u
-AS $$
-import json, ssl, urllib.request
+ALTER TABLE embeddings.product_brand_embedding
+ADD COLUMN IF NOT EXISTS content_hash text;
 
-rv = plpy.execute("SELECT current_setting('api.openai_api_key', true) AS k")
-api_key = rv[0]["k"] if rv and rv[0]["k"] is not None else None
-if not api_key:
-    raise Exception("OpenAI API key not set.")
+ALTER TABLE embeddings.product_embedding
+ADD COLUMN IF NOT EXISTS content_hash text;
 
-SYSTEM = f"""
-You are a PostgreSQL SQL generator for an e-commerce schema.
-Return ONLY SQL (no markdown, no explanation, no semicolons).
-Hard rules:
-- SELECT or WITH only.
-- Must include LIMIT {p_row_limit}.
-- Use only schemas: product, embeddings, api.
-- MUST use the provided query vector in the SQL using pgvector cosine distance (<->).
-- Prefer current price only:
-  JOIN product.product_variant_price pvp ON pvp.product_variant_id = pv.id AND pvp.current = true
+ALTER TABLE embeddings.product_variant_embedding
+ADD COLUMN IF NOT EXISTS content_hash text;
 
-Core tables:
-- product.product p (id, category_id, brand_id, label, shortdescription, longdescription, image_filename)
-- product.category c (id, label, description)
-- product.brand b (id, label, description)
-- product.product_variant pv (id, product_id, attributes jsonb)
-- variants: product.product_variant pv (id, product_id, attributes JSONB)
-- price: product.product_variant_price pvp (product_variant_id, price, validity, current)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-Embeddings tables (pick the best match for the question):
-- embeddings.product_embedding pe (product_id, embedding vector(1536)) join pe.product_id = p.id
-- embeddings.product_variant_embedding pve (product_variant_id, embedding vector(1536)) join pve.product_variant_id = pv.id
-- embeddings.product_brand_embedding pbe (product_brand_id, embedding vector(1536)) join pbe.product_brand_id = b.id
-- embeddings.product_category_embedding pce (product_category_id, embedding vector(1536)) join pce.product_category_id = c.id
+ALTER TABLE embeddings.embedding_job
+ADD COLUMN IF NOT EXISTS next_run_at timestamptz NOT NULL DEFAULT now(),
+ADD COLUMN IF NOT EXISTS max_attempts int NOT NULL DEFAULT 10;
 
-Output columns should be useful:
-- product id + label
-- category label
-- brand label when relevant
-- price (from current price join when variant is used)
-- pv.attributes when relevant
-- distance as "distance"
-Order by distance ASC.
-Use the following code to get the query embedding vector:
-  api.openai_embed('{p_question}')::vector(1536)
-""".strip()
+CREATE INDEX IF NOT EXISTS embedding_job_runnable_idx
+  ON embeddings.embedding_job (status, next_run_at, created_at);
 
-USER = f"Question: {p_question}"
+ALTER TABLE embeddings.embedding_job
+ADD COLUMN IF NOT EXISTS next_run_at timestamptz NOT NULL DEFAULT now(),
+ADD COLUMN IF NOT EXISTS max_attempts int NOT NULL DEFAULT 10;
 
-payload = {
-  "model": "gpt-4o-mini",
-  "messages": [
-    {"role":"system","content":SYSTEM},
-    {"role":"user","content":USER}
-  ],
-  "temperature": 0.0,
-  "max_tokens": 250
-}
+CREATE INDEX IF NOT EXISTS embedding_job_runnable_idx
+  ON embeddings.embedding_job (status, next_run_at, created_at);
 
-headers = {"Content-Type":"application/json","Authorization":f"Bearer {api_key}"}
-ctx = ssl.create_default_context()
-req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
-                             data=json.dumps(payload).encode("utf-8"),
-                             headers=headers)
-with urllib.request.urlopen(req, context=ctx) as resp:
-    data = json.loads(resp.read().decode("utf-8"))
-sql = data["choices"][0]["message"]["content"].strip()
+ALTER TABLE embeddings.product_category_embedding ADD COLUMN IF NOT EXISTS content_hash text;
+ALTER TABLE embeddings.product_brand_embedding    ADD COLUMN IF NOT EXISTS content_hash text;
+ALTER TABLE embeddings.product_embedding          ADD COLUMN IF NOT EXISTS content_hash text;
+ALTER TABLE embeddings.product_variant_embedding  ADD COLUMN IF NOT EXISTS content_hash text;
 
-# Defensive cleanup: remove trailing semicolons if model slips
-sql = sql.replace(";", "")
-return sql
-$$;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+WITH q AS (
+  SELECT api.openai_embed($1)::vector(1536) AS qvec
+)
+SELECT p.id, p.label, (pe.embedding <=> q.qvec) AS distance
+FROM product.product p
+JOIN embeddings.product_embedding pe ON pe.product_id = p.id
+CROSS JOIN q
+ORDER BY pe.embedding <=> q.qvec
+LIMIT 10;
+
+CREATE TABLE IF NOT EXISTS embeddings.query_embedding_cache (
+  query_text     text PRIMARY KEY,
+  embedding      vector(1536) NOT NULL,
+  model_id       text NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  last_used_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS query_embedding_cache_last_used_idx
+  ON embeddings.query_embedding_cache (last_used_at);
+
+CCREATE OR REPLACE FUNCTION embeddings.sf_get_query_embedding(
+  p_query    text,
+  p_model_id text DEFAULT 'text-embedding-3-small'
+)
+RETURNS vector(1536)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, embeddings, api
+AS $function$
+DECLARE
+  v_embedding vector(1536);
+BEGIN
+  -- Fast path: cache hit
+  SELECT qec.embedding
+  INTO v_embedding
+  FROM embeddings.query_embedding_cache qec
+  WHERE qec.query_text = p_query
+    AND qec.model_id    = p_model_id;
+
+  IF v_embedding IS NOT NULL THEN
+    UPDATE embeddings.query_embedding_cache qec
+    SET last_used_at = now()
+    WHERE qec.query_text = p_query
+      AND qec.model_id    = p_model_id;
+
+    RETURN v_embedding;
+  END IF;
+
+  -- Cache miss: compute embedding
+  v_embedding := api.openai_embed(p_query)::vector(1536);
+
+  INSERT INTO embeddings.query_embedding_cache (query_text, embedding, model_id, last_used_at)
+  VALUES (p_query, v_embedding, p_model_id, now())
+  ON CONFLICT (query_text)
+  DO UPDATE
+    SET embedding    = EXCLUDED.embedding,
+        model_id     = EXCLUDED.model_id,
+        last_used_at = now();
+
+  RETURN v_embedding;
+END;
+$function$;
+
+COMMENT ON FUNCTION embeddings.sf_get_query_embedding(text, text)
+IS 'Return (and cache) an embedding for the given query text and model id.';
+
+WITH q AS (
+  SELECT embeddings.sf_get_query_embedding($1) AS qvec
+)
+SELECT p.id, p.label, (pe.embedding <=> q.qvec) AS distance
+FROM product.product p
+JOIN embeddings.product_embedding pe ON pe.product_id = p.id
+CROSS JOIN q
+ORDER BY pe.embedding <=> q.qvec
+LIMIT 10;
+
+DELETE FROM embeddings.query_embedding_cache
+WHERE last_used_at < now() - interval '7 days';
+
+ALTER TABLE embeddings.product_embedding
+ADD COLUMN IF NOT EXISTS model_id text NOT NULL DEFAULT 'text-embedding-3-small';
+
+WITH q AS (
+  SELECT embeddings.sf_get_query_embedding($1, 'text-embedding-3-small') AS qvec
+)
+SELECT p.id, p.label, (pe.embedding <=> q.qvec) AS distance
+FROM product.product p
+JOIN embeddings.product_embedding pe ON pe.product_id = p.id
+CROSS JOIN q
+WHERE pe.model_id = 'text-embedding-3-small'
+ORDER BY pe.embedding <=> q.qvec
+LIMIT 10;
