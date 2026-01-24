@@ -337,7 +337,7 @@ FROM prod_w_embedding pwe, query_embedding qe
 ORDER BY pwe.embedding <=> qe.qvec
 LIMIT 3;
 
--- Spotify-style Recommendation Example
+-- Spotify-style Song Recommendation Example
  WITH taste AS (
   SELECT api.openai_embed(
     'I like classic menswear, tailored fits, neutral colors, premium brands'
