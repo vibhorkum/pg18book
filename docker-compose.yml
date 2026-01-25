@@ -37,10 +37,10 @@ services:
       
       # Replication and Logical Replication Settings
       PG_WAL_LEVEL: logical
-      PG_MAX_REPLICATION_SLOTS: 10
-      PG_MAX_WAL_SENDERS: 10
+      PG_MAX_REPLICATION_SLOTS: 20
+      PG_MAX_WAL_SENDERS: 20
       PG_HOT_STANDBY: on
-      PG_MAX_LOGICAL_REPLICATION_WORKERS: 10
+      PG_MAX_LOGICAL_REPLICATION_WORKERS: 20
       
       # WAL and Checkpointing
       PG_MAX_WAL_SIZE: 2GB
