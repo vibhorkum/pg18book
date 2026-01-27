@@ -1,4 +1,13 @@
-/* This is continuation of Chapter 19.sql. Chapter 19 creates embedding and we are going to leverage it here for similarity search. */
+/* ============================================================================
+
+Code samples for Chapter 20 - PostgreSQL and MCP: the blueprint for a robust AI assistant
+
+This is continuation of Chapter 19.sql. Chapter 19 creates embedding 
+and we are going to leverage those here for similarity search. 
+
+This code should be executed against aidb.
+
+*/
 
 CREATE OR REPLACE FUNCTION api.sf_similar_items(
   p_query_text text,
@@ -525,6 +534,8 @@ IS 'Generate a SELECT-only SQL statement (no semicolons) from a question.';
 /* Example usage of sf_sql_from_question */
 SELECT * FROM api.sf_sql_from_question('Show me polo shirts under $80 with current price', 10);
 
+SELECT * FROM api.sf_dynamic_chat('Show me men''s shirts in blue, include the color attribute', 1);
+
 CREATE OR REPLACE FUNCTION api.sf_dynamic_chat(
   p_question  text,
   p_row_limit integer DEFAULT 20
@@ -732,6 +743,13 @@ BEGIN
 END;
 $$;
 
+WITH q AS (
+  SELECT embeddings.sf_get_query_embedding('looking for tailored clothing') AS qvec
+)
+SELECT *
+FROM q, api.sf_similar_items_v2(NULL, q.qvec, 5);
+
+
 /* Audit log table for API chatbot usage */
 
 CREATE TABLE IF NOT EXISTS api.chat_audit_log (
@@ -744,6 +762,9 @@ CREATE TABLE IF NOT EXISTS api.chat_audit_log (
   success boolean NOT NULL DEFAULT true,
   error text
 );
+
+INSERT INTO api.chat_audit_log(tool_used, question, sql_used, row_count, success)
+VALUES ('dynamic_sql', p_question, v_sql, jsonb_array_length(v_rows), true);
 
 
 /* sf_dynamic_chat with audit logging */
@@ -912,6 +933,11 @@ IS 'Route chat to hybrid, dynamic_sql, or semantic based on heuristics; writes a
 /* Example usage of sf_route_chat with audit logging */
 SELECT tool_used, assistant_text
 FROM api.sf_route_chat('looking for tailored clothing', 2, 2);
+
+SELECT tool_used, sql_used, assistant_text
+FROM api.sf_route_chat('Show me polo shirts under $80', 2, 2);
+
+
 /* View audit log */
 SELECT * FROM api.chat_audit_log;
 
@@ -944,6 +970,10 @@ TO mcp_assistant;
 
 /* Set statement timeout for the role to prevent long-running queries */
 ALTER ROLE mcp_assistant SET statement_timeout = '2s';
+
+/* Function-level (inside your executor function)*/
+PERFORM set_config('statement_timeout', '2000ms', true);
+
 
 /* Function to check if a SQL string is a safe SELECT/CTE for basic validation */
 CREATE OR REPLACE FUNCTION api.sf_is_safe_select(
@@ -987,6 +1017,12 @@ $function$;
 
 COMMENT ON FUNCTION api.sf_is_safe_select(text)
 IS 'Return true if the SQL string looks like a single SELECT/CTE and avoids unsafe constructs.';
+
+IF length(btrim(p_question)) < 3 THEN
+  RAISE EXCEPTION 'Query too short to embed safely';
+END IF;
+
+SELECT embeddings.sf_get_query_embedding(p_question) INTO qvec;
 
 /* View to simplify product search queries for MCP Server*/
 CREATE OR REPLACE VIEW api.product_search_vw AS

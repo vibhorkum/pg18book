@@ -1,6 +1,6 @@
 /* ============================================================================
 
-                        Code samples for Chapter 19 - Production-Ready AI Embedding Pipeline Patterns
+Code samples for Chapter 19 - Production-Ready AI Embedding Pipeline Patterns
 
 To use the Chapter 19 SQL script, connect to a clean aidb database and run the following 
 commands in the psql terminal after connecting to the aidb database.
