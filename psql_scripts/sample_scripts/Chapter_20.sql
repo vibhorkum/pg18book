@@ -553,9 +553,7 @@ DECLARE
   v_rows jsonb;
 BEGIN
   --- Ask model for SQL
-  v_sql := api.A Curated Query Assistant that is safe by construction, simple intent routing, predefined query templates, predictable performance, and auditable outputs.
-A Governed Query Assistant that can handle richer questions, but only inside strict guardrails (SELECT-only, enforced LIMITs, schema whitelists, and logged execution).
-(p_question, p_row_limit);
+  v_sql :=  api.sf_sql_from_question(p_question, p_row_limit);
 
   --- Execute safely (SELECT-only + limit + allowlist)
   v_rows := api.sf_safe_select(v_sql, p_row_limit);
@@ -652,7 +650,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 VOLATILE
-AS $function$
+AS $$
 DECLARE
   v_data jsonb;
 BEGIN
@@ -667,7 +665,7 @@ BEGIN
       s.longdescription,
       s.price,
       s.distance
-    FROM api.similar_items(p_question, p_k) s
+    FROM api.sf_similar_items(p_question, p_k) s
     WHERE (p_max_price IS NULL OR s.price <= p_max_price)
     ORDER BY s.distance
     LIMIT 10
@@ -678,7 +676,7 @@ BEGIN
 
   RETURN NEXT;
 END;
-$function$;
+$$;
 
 COMMENT ON FUNCTION api.sf_hybrid_chat(text, numeric, integer)
 IS 'Hybrid chat: semantic search with optional max price filter, then answer using returned rows.';
@@ -847,7 +845,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 VOLATILE
-AS $function$
+AS $$
 DECLARE
   v_q               text := lower(coalesce(p_question, ''));
   v_has_constraints boolean;
@@ -925,7 +923,7 @@ BEGIN
 
   RETURN NEXT;
 END;
-$function$;
+$$;
 
 COMMENT ON FUNCTION api.sf_route_chat(text, integer, integer)
 IS 'Route chat to hybrid, dynamic_sql, or semantic based on heuristics; writes an audit row.';
@@ -982,7 +980,7 @@ CREATE OR REPLACE FUNCTION api.sf_is_safe_select(
 RETURNS boolean
 LANGUAGE plpgsql
 STABLE
-AS $function$
+AS $$
 DECLARE
   v_sql_lc text := lower(coalesce(p_sql, ''));
 BEGIN
@@ -1013,7 +1011,7 @@ BEGIN
 
   RETURN true;
 END;
-$function$;
+$$;
 
 COMMENT ON FUNCTION api.sf_is_safe_select(text)
 IS 'Return true if the SQL string looks like a single SELECT/CTE and avoids unsafe constructs.';
