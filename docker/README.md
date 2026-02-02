@@ -55,7 +55,7 @@ Key differences:
 | AI | pgvector + Python stack included |
 
 
-## 📁 Repository Layout
+## Repository Layout
 
 ```bash
 ├── Dockerfile
