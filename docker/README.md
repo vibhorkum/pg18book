@@ -57,6 +57,7 @@ Key differences:
 
 ## 📁 Repository Layout
 
+```bash
 ├── Dockerfile
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
@@ -70,7 +71,7 @@ Key differences:
 │   ├── test-all-extensions.sh
 │   └── test-pgvector.sh
 └── README.md
-
+```
 
 ## Quick Start (Docker)
 
