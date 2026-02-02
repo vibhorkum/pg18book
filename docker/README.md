@@ -30,13 +30,15 @@ This image prioritizes:
 - **Clean bootstrap lifecycle (no double starts)**
 
 ##  Image
-
+```docker
 vibhorkumar123/pg18-vector:
+```
 
 Example:
 
+```docker
 vibhorkumar123/pg18-vector:v2.4
-
+```
 
 ## Design Philosophy
 
@@ -141,7 +143,7 @@ This allows:
 | `PG_MAX_PARALLEL_WORKERS_PER_GATHER` | `2` |
 | `PG_MAX_PARALLEL_MAINTENANCE_WORKERS` | `2` |
 
----
+
 
 ### WAL & Replication
 
@@ -154,7 +156,6 @@ This allows:
 | `PG_MAX_WAL_SIZE` | `2GB` |
 | `PG_CHECKPOINT_TIMEOUT` | `10min` |
 
----
 
 ### Logging
 
@@ -166,10 +167,6 @@ This allows:
 | `PG_LOG_MIN_DURATION_STATEMENT` | `1000` |
 | `PG_LOG_STATEMENT` | `none` |
 | `PG_LOG_LINE_PREFIX` | `%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h ` |
-
-
-
-⸻
 
 ## Extensions (preload)
 
@@ -268,8 +265,8 @@ POSTGRES_PASSWORD=secret DO_SYSTEM_PRUNE=1 ./clean_build_pg18.sh
 
 # Author
 
-Vibhor Kumar
-Technology Leader – PostgreSQL, Data Platforms, AI
-LinkedIn: https://www.linkedin.com/in/vibhork
-GitHub: https://github.com/vibhorkumar123
+- Vibhor Kumar
+- Technology Leader - PostgreSQL, Data Platforms, AI
+- LinkedIn: https://www.linkedin.com/in/vibhork
+- GitHub: https://github.com/vibhorkumar123
 
