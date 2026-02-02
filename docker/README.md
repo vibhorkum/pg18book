@@ -46,18 +46,17 @@ Key differences:
 
 | Area | This Image |
 |---|---|
-Startup | PostgreSQL runs **in foreground** (PID 1)
-Config | Generated via `conf.d/10-docker-env.conf`
-Overrides | User overrides via `conf.d/99-user.conf`
-Init | One-time bootstrap using `pg_ctl`
-Tests | Explicit test scripts (not implicit)
-Security | Trust auth by default (dev-first)
-AI | pgvector + Python stack included
+| Startup | PostgreSQL runs **in foreground** (PID 1) |
+| Config | Generated via `conf.d/10-docker-env.conf` |
+| Overrides | User overrides via `conf.d/99-user.conf` |
+| Init | One-time bootstrap using `pg_ctl` |
+| Tests | Explicit test scripts (not implicit) |
+| Security | Trust auth by default (dev-first) |
+| AI | pgvector + Python stack included |
 
 
 ## 📁 Repository Layout
 
-.
 ├── Dockerfile
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
@@ -83,11 +82,12 @@ docker run -d \
   -p 5432:5432 \
   -e POSTGRES_PASSWORD=postgres \
   vibhorkumar123/pg18-vector:v2.4
+```
 
 Connect:
-
+```bash
 docker exec -it pg18 psql -U postgres
-
+```
 
 ## Configuration Model
 
