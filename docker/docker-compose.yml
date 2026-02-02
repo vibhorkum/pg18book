@@ -1,7 +1,8 @@
 services:
   db:
     image: vibhorkumar123/pg18-vector:v2.3
-    container_name: pg18book-prod
+    platform: linux/amd64
+    container_name: pg18book
     ports:
       - "5432:5432"
     restart: unless-stopped
