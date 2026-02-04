@@ -1,6 +1,6 @@
 services:
   db:
-    image: vibhorkumar123/pg18-vector:v2.3
+    image: vibhorkumar123/pg18-vector:v2.4
     platform: linux/amd64
     container_name: pg18book
     ports:

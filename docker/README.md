@@ -61,8 +61,7 @@ Key differences:
 
 ```bash
 ├── Dockerfile
-├── docker-compose.dev.yml
-├── docker-compose.prod.yml
+├── docker-compose.yml
 ├── scripts/
 │   ├── start-postgres.sh
 │   ├── init-postgres.sh
