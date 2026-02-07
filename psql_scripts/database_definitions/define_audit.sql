@@ -50,7 +50,7 @@ GRANT INSERT, UPDATE, DELETE
 
 -- pgAudit does not support object-level auditing for functions or procedures
 -- audit all function and procedure calls for this database
-ALTER DATABASE SET audit.pgaudit.log ='execute';
+ALTER DATABASE SET audit.pgaudit.log ='function';
 
 
 \c east_ecommerce_data
@@ -61,7 +61,7 @@ GRANT INSERT, UPDATE, DELETE
 
 -- pgAudit does not support object-level auditing for functions or procedures
 -- audit all function and procedure calls for this database
-ALTER DATABASE SET audit.pgaudit.log ='execute';    
+ALTER DATABASE SET audit.pgaudit.log ='function';    
 
 \c west_ecommerce_data
 -- use object-level auditing for DML on inventory information
@@ -69,7 +69,7 @@ GRANT INSERT, UPDATE, DELETE
     ON inventory.product_variant_inventory;
 -- pgAudit does not support object-level auditing for functions or procedures
 -- audit all function and procedure calls for this database
-ALTER DATABASE SET audit.pgaudit.log ='execute';    
+ALTER DATABASE SET audit.pgaudit.log ='function';    
 
 \c central_analytics
 
