@@ -290,7 +290,8 @@ CREATE OR REPLACE FUNCTION sf_add_lines_to_sales_order (
 AS
 $$
 DECLARE
-    v_products_ordered INTEGER[][]; -- result array of all successful lines
+    v_products_ordered INTEGER[][] := ARRAY[]::INTEGER[][]; -- result array of all successful lines
+    v_i INTEGER;
     v_pv_id INTEGER;
     v_qty INTEGER;
     v_price NUMERIC;
@@ -563,7 +564,7 @@ except spiexceptions.PrimaryKeyViolation as e:
     return "Unique constraint violation: " + str(e)
 except plpy.SPIError as e:
     return "other error, SQLSTATE %s" % e.sqlstate
-else:
+except Exception as e:
         return "Unknown error: " + str(e)
 $$ LANGUAGE plpython3u;
 

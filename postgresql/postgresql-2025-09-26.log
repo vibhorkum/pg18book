@@ -1,0 +1,26 @@
+2025-09-26 19:03:50 UTC [76]: [4-1] user=,db=,app=,client= LOG:  starting PostgreSQL 18beta3 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5), 64-bit
+2025-09-26 19:03:50 UTC [76]: [5-1] user=,db=,app=,client= LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-09-26 19:03:50 UTC [76]: [6-1] user=,db=,app=,client= LOG:  listening on IPv6 address "::", port 5432
+2025-09-26 19:03:50 UTC [76]: [7-1] user=,db=,app=,client= LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-26 19:03:50 UTC [83]: [1-1] user=,db=,app=,client= LOG:  database system was shut down at 2025-09-26 19:03:49 UTC
+2025-09-26 19:03:50 UTC [76]: [8-1] user=,db=,app=,client= LOG:  database system is ready to accept connections
+2025-09-26 19:03:51 UTC [144]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: ALTER USER postgres PASSWORD 'postgres';
+2025-09-26 19:03:51 UTC [144]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,ROLE,ALTER ROLE,,,ALTER USER postgres PASSWORD <REDACTED>,<none>
+2025-09-26 19:03:51 UTC [173]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+2025-09-26 19:03:51 UTC [173]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS pg_stat_statements,<none>
+2025-09-26 19:03:52 UTC [202]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS vector;
+2025-09-26 19:03:52 UTC [202]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS vector,<none>
+2025-09-26 19:03:52 UTC [231]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS pg_ivm;
+2025-09-26 19:03:52 UTC [231]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS pg_ivm,<none>
+2025-09-26 19:03:52 UTC [267]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS pg_background;
+2025-09-26 19:03:52 UTC [267]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS pg_background,<none>
+2025-09-26 19:03:53 UTC [296]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS pg_squeeze;
+2025-09-26 19:03:53 UTC [296]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS pg_squeeze,<none>
+2025-09-26 19:03:53 UTC [325]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS pgaudit;
+2025-09-26 19:03:53 UTC [325]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS pgaudit,<none>
+2025-09-26 19:03:54 UTC [354]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS plpgsql_check;
+2025-09-26 19:03:54 UTC [354]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS plpgsql_check,<none>
+2025-09-26 19:03:54 UTC [354]: [3-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,EXTENSION,plpgsql_check,CREATE EXTENSION IF NOT EXISTS plpgsql_check,<none>
+2025-09-26 19:03:54 UTC [383]: [1-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  statement: CREATE EXTENSION IF NOT EXISTS plpython3u;
+2025-09-26 19:03:54 UTC [383]: [2-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,,,CREATE EXTENSION IF NOT EXISTS plpython3u,<none>
+2025-09-26 19:03:54 UTC [383]: [3-1] user=postgres,db=postgres,app=psql,client=[local] LOG:  AUDIT: SESSION,1,1,DDL,CREATE EXTENSION,EXTENSION,plpython3u,CREATE EXTENSION IF NOT EXISTS plpython3u,<none>
