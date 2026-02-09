@@ -409,8 +409,10 @@ CREATE TABLE users (
  
 CREATE INDEX idx_user_test_fname_lname ON users (f_name, l_name); 
 
+DROP TABLE IF EXISTS follower_count CASCADE;
+
 CREATE TABLE follower_count ( 
-  user_id INTEGER REFERNCES users(id) ON DELETE CASCADE, 
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, 
   follower_count INTEGER 
 ); 
 
