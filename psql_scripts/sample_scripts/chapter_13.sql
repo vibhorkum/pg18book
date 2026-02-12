@@ -211,7 +211,7 @@ WITH RECURSIVE sales_hierarchy AS (
     FROM auxiliary.sales_organization so
     JOIN sales_hierarchy sh ON so.manager_id = sh.employee_id
 )
-SELECT * FROM sales_hierarchy ORDER BY level, employee_id;
+SELECT employee_id, first_name, last_name, manager_id FROM sales_hierarchy ORDER BY level, employee_id;
 
 
 -- CTE to aggregate sales targets up the hierarchy
@@ -234,4 +234,35 @@ SELECT  DISTINCT employee_id, first_name, last_name, manager_id,
     FROM bottom_up
     ORDER BY total_sales_target DESC;
 
-  
+
+
+-- CTE to illustrate the SEARCH DEPTH FIRST (BREADTH FIRST is the default)
+WITH RECURSIVE hierarchy AS (
+    SELECT employee_id, first_name, last_name, manager_id
+    FROM auxiliary.sales_organization
+    WHERE manager_id IS NULL
+    UNION ALL
+    SELECT so.employee_id, so.first_name, so.last_name, so.manager_id
+    FROM auxiliary.sales_organization so
+    JOIN hierarchy h ON so.manager_id = h.employee_id
+) SEARCH DEPTH FIRST BY employee_id SET ordercol
+SELECT employee_id, first_name, last_name, manager_id, ordercol FROM hierarchy
+ORDER BY employee_id;
+
+
+-- sample table for a cyclic data structure
+CREATE TABLE test_cycle ( employee_id TEXT PRIMARY KEY, manager_id TEXT ); 
+INSERT INTO test_cycle VALUES ('E001', 'E002'); 
+INSERT INTO test_cycle VALUES ('E002', 'E003'); 
+INSERT INTO test_cycle VALUES ('E003', 'E001'); 
+
+-- CTE to detect cycles in the hierarchy using the CYCLE clause
+WITH RECURSIVE hierarchy AS ( 
+    SELECT employee_id, manager_id 
+        FROM test_cycle 
+        --WHERE manager_id IS NULL 
+    UNION ALL 
+    SELECT tc.employee_id, tc.manager_id 
+        FROM test_cycle tc JOIN hierarchy h ON tc.manager_id = h.employee_id ) 
+        CYCLE employee_id SET is_cycle USING path 
+SELECT employee_id, manager_id, is_cycle, path FROM hierarchy ORDER BY path;
