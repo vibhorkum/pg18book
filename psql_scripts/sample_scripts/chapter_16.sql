@@ -84,7 +84,7 @@ LIMIT 5;
 
 -- Create our IVFFLAT "Supermarket" index for 1 million products
 -- this is not functional code, just an example of creating an ivfflat index!
-CREATE INDEX ON product
+CREATE INDEX ON embeddings.product_embedding
     -- identify the index type, the column to index, and the operator class
     USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 1000);
@@ -114,7 +114,7 @@ SELECT product_id, product_name
 -- and a "perfectionist" builder
 -- this is not functional code, just an example of creating an hnsw index!
 
-CREATE INDEX ON product
+CREATE INDEX ON embeddings.product_embedding
     -- identify the index type, the column to index, and the operator class
     USING hnsw (embedding vector_cosine_ops)
     -- m=16 means each node connects to 16 neighbors (default)
