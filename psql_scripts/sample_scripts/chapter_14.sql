@@ -87,7 +87,9 @@ ALTER TABLE product
     GENERATED ALWAYS AS (
         to_tsvector('english', 
         -- cannot use format here as its not immutable
-        label ||' '|| shortdescription || ' ' ||longdescription 
+            coalesce(label,'') || ' ' ||
+            coalesce(shortdescription,'') || ' ' ||
+            coalesce(longdescription,'')
         )
     ) STORED;
 
