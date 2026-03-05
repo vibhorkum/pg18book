@@ -7,3 +7,5 @@ marc_notes.txt
 psql_scripts/sample_scripts/pgbench-scripts/west-load/west-scripts.sql
 psql_scripts/sample_scripts/pgbench-scripts/pgbench_run_summary.txt
 .DS_Store
+logs/
+postgresql/

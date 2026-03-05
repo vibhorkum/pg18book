@@ -1,6 +1,0 @@
-2025-11-03 16:20:04 GMT [155]: [1-1] user=,db=,app=,client= LOG:  pgaudit extension initialized
-2025-11-03 16:20:04 GMT [155]: [2-1] user=,db=,app=,client= LOG:  redirecting log output to logging collector process
-2025-11-03 16:20:04 GMT [155]: [3-1] user=,db=,app=,client= HINT:  Future log output will appear in directory "/var/log/postgresql".
-2025-11-11 00:10:44 GMT [75]: [1-1] user=,db=,app=,client= LOG:  pgaudit extension initialized
-2025-11-11 00:10:44 GMT [75]: [2-1] user=,db=,app=,client= LOG:  redirecting log output to logging collector process
-2025-11-11 00:10:44 GMT [75]: [3-1] user=,db=,app=,client= HINT:  Future log output will appear in directory "/var/log/postgresql".
